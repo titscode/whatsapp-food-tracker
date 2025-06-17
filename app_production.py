@@ -730,4 +730,8 @@ if __name__ == '__main__':
     print("✨ Version production - Messages propres uniquement")
     print("🎤 Messages vocaux temporairement désactivés")
     
-    app.run(host='0.0.0.0', port=3000, debug=False)
+    # Port pour Railway (variable d'environnement) ou 3000 en local
+    port = int(os.getenv('PORT', 3000))
+    print(f"🌐 Serveur démarré sur le port: {port}")
+    
+    app.run(host='0.0.0.0', port=port, debug=False)
