@@ -42,6 +42,8 @@ TWILIO_PHONE_NUMBER=whatsapp:+14155238886
   - `Procfile` : Commande de démarrage
   - `requirements.txt` : Dépendances Python
   - `railway.json` : Configuration Railway
+  - `runtime.txt` : Version Python (3.11.0)
+  - `nixpacks.toml` : Configuration build explicite
 - Le déploiement se lance automatiquement
 - Attendre 2-3 minutes pour le build complet
 
