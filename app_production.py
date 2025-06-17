@@ -3,7 +3,10 @@ from twilio.rest import Client as TwilioClient
 from dotenv import load_dotenv
 import os
 import sqlite3
+import logging
 from datetime import datetime, timedelta
+from functools import wraps
+import time
 
 # Imports des modules
 from database import init_db, get_user_data, update_user_data
@@ -23,18 +26,65 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# ===== CONFIGURATION LOGGING PRODUCTION =====
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console pour Railway
+        logging.FileHandler('lea_bot.log', encoding='utf-8')  # Fichier local
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# ===== RATE LIMITING SIMPLE =====
+user_requests = {}  # {phone_number: [timestamps]}
+RATE_LIMIT_WINDOW = 60  # 1 minute
+RATE_LIMIT_MAX_REQUESTS = 10  # Max 10 messages par minute
+
+def is_rate_limited(phone_number):
+    """Vérifie si l'utilisateur dépasse la limite de requêtes"""
+    now = time.time()
+    
+    if phone_number not in user_requests:
+        user_requests[phone_number] = []
+    
+    # Nettoyer les anciennes requêtes (plus de 1 minute)
+    user_requests[phone_number] = [
+        timestamp for timestamp in user_requests[phone_number] 
+        if now - timestamp < RATE_LIMIT_WINDOW
+    ]
+    
+    # Vérifier la limite
+    if len(user_requests[phone_number]) >= RATE_LIMIT_MAX_REQUESTS:
+        logger.warning(f"Rate limit dépassé pour {phone_number}")
+        return True
+    
+    # Ajouter la requête actuelle
+    user_requests[phone_number].append(now)
+    return False
+
 # Configuration des clés API depuis .env
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', 'whatsapp:+14155238886')
 
-print(f"🔑 Twilio configuré: {'Oui' if TWILIO_ACCOUNT_SID else 'Non'}")
+logger.info(f"🔑 Twilio configuré: {'Oui' if TWILIO_ACCOUNT_SID else 'Non'}")
 
-# Initialisation du client Twilio
-twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+# Initialisation du client Twilio avec gestion d'erreur
+try:
+    twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    logger.info("✅ Client Twilio initialisé avec succès")
+except Exception as e:
+    logger.error(f"❌ Erreur initialisation Twilio: {e}")
+    twilio_client = None
 
 # Initialiser la base de données
-init_db()
+try:
+    init_db()
+    logger.info("✅ Base de données initialisée")
+except Exception as e:
+    logger.error(f"❌ Erreur initialisation DB: {e}")
 
 # ===== FONCTIONS DASHBOARD KPI (INTÉGRÉES DEPUIS SAUVEGARDE) =====
 
@@ -142,7 +192,7 @@ def get_dau_history_14_days():
 
 @app.route('/whatsapp', methods=['POST', 'GET'])
 def whatsapp_webhook():
-    """Point d'entrée principal pour les messages WhatsApp - VERSION PRODUCTION"""
+    """Point d'entrée principal pour les messages WhatsApp - VERSION PRODUCTION OPTIMISÉE"""
     if request.method == 'GET':
         return "Webhook WhatsApp actif!", 200
         
@@ -150,10 +200,29 @@ def whatsapp_webhook():
     text_content = request.form.get('Body', '').strip()
     media_url = request.form.get('MediaUrl0')
     
-    # Logs serveur uniquement (pas envoyés à l'utilisateur)
-    print(f"📱 Message reçu de {from_number}")
-    print(f"📝 Texte: '{text_content}'")
-    print(f"🖼️ Image: {media_url}")
+    # Logging structuré
+    logger.info(f"📱 Message reçu de {from_number}")
+    logger.info(f"📝 Texte: '{text_content}'")
+    logger.info(f"🖼️ Image: {media_url}")
+    
+    # Vérification rate limiting
+    if is_rate_limited(from_number):
+        logger.warning(f"🚫 Rate limit dépassé pour {from_number}")
+        try:
+            send_whatsapp_reply(
+                from_number, 
+                "⏰ Vous envoyez trop de messages ! Attendez une minute avant de réessayer.", 
+                twilio_client, 
+                TWILIO_PHONE_NUMBER
+            )
+        except Exception as e:
+            logger.error(f"Erreur envoi message rate limit: {e}")
+        return '<Response/>', 429
+    
+    # Vérification client Twilio
+    if not twilio_client:
+        logger.error("❌ Client Twilio non initialisé")
+        return '<Response/>', 500
     
     try:
         # Récupérer les données utilisateur
