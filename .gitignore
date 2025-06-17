@@ -1,0 +1,37 @@
+# Fichiers sensibles
+.env
+*.env
+
+# Base de données
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Archive et backups
+_archive/
+*backup*
+*_backup_*
+
+# Outils de développement
+ngrok.exe
+ngrok.zip
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
