@@ -255,10 +255,21 @@ def whatsapp_webhook():
         
         # PRIORITÉ ABSOLUE : Gestion de l'onboarding si pas terminé
         if not user_data.get('onboarding_complete', True):
-            from simple_onboarding import handle_simple_onboarding
-            onboarding_response = handle_simple_onboarding(from_number, text_content, user_data)
-            send_whatsapp_reply(from_number, onboarding_response, twilio_client, TWILIO_PHONE_NUMBER)
-            return '<Response/>', 200
+            logger.info(f"🎯 ONBOARDING DÉTECTÉ - Étape: {user_data.get('onboarding_step', 'unknown')}")
+            logger.info(f"🎯 Message reçu: '{text_content}'")
+            try:
+                from simple_onboarding import handle_simple_onboarding
+                logger.info("✅ Module simple_onboarding importé avec succès")
+                onboarding_response = handle_simple_onboarding(from_number, text_content, user_data)
+                logger.info(f"✅ Réponse onboarding générée: {onboarding_response[:100]}...")
+                send_whatsapp_reply(from_number, onboarding_response, twilio_client, TWILIO_PHONE_NUMBER)
+                return '<Response/>', 200
+            except Exception as e:
+                logger.error(f"❌ ERREUR ONBOARDING: {e}")
+                import traceback
+                logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
+                send_whatsapp_reply(from_number, f"Erreur onboarding: {e}", twilio_client, TWILIO_PHONE_NUMBER)
+                return '<Response/>', 200
         
         # Traitement des commandes spéciales
         if text_content.lower() in ['/aide', '/help', '/?']:
