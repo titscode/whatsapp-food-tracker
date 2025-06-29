@@ -43,64 +43,59 @@ def is_conversation_message(text):
         'cool', 'top', 'nice', 'bien', 'mal', 'triste', 'content',
         'haha', 'lol', 'mdr', '😂', '😊', '😢', '👍', '👌',
         
-        # Questions générales
-        'comment', 'pourquoi', 'quand', 'où', 'qui', 'quoi',
+        # Questions générales (sans contexte alimentaire)
+        'comment tu vas', 'comment ça se passe', 'tu fais quoi',
         
         # Tracking acknowledgment (pas des aliments)
         'je track', 'je tracke', 'j\'ai tracké', 'tracking'
     ]
     
-    # Mots-clés d'aliments spécifiques
-    food_keywords = [
-        # Quantités + aliments
-        'grammes', 'kilos', 'litres', 'cuillères', 'morceaux', 'tranches',
-        '100g', '50g', '200g', '150g', '300g', 'kg', 'ml',
+    # Patterns de tracking d'aliments PRIORITAIRES
+    food_tracking_patterns = [
+        # Quantités avec unités
+        r'\d+\s*g\s+', r'\d+\s*grammes?\s+', r'\d+\s*ml\s+', r'\d+\s*kg\s+',
+        r'\d+g\s+de\s+', r'\d+ml\s+de\s+', r'\d+\s+grammes?\s+de\s+',
         
-        # Aliments spécifiques
-        'poulet', 'bœuf', 'porc', 'poisson', 'saumon', 'thon',
-        'riz', 'pâtes', 'pain', 'pomme', 'banane', 'avocat',
-        'salade', 'tomate', 'carotte', 'brocoli', 'épinards',
-        'yaourt', 'fromage', 'lait', 'œuf', 'œufs',
-        'whey', 'whey protéine', 'protéine', 'amandes', 'noix',
+        # Quantités avec aliments spécifiques
+        r'\d+.*(?:poulet|bœuf|porc|poisson|saumon|thon|riz|pâtes|pain|whey|protéine)',
+        r'(?:une?|deux|trois|quatre|cinq)\s+(?:pomme|banane|orange|œuf)',
         
-        # Actions de consommation avec aliments
-        'j\'ai mangé', 'j\'ai pris', 'j\'ai bu', 'j\'ai consommé',
-        'ce midi j\'ai', 'ce matin j\'ai', 'ce soir j\'ai'
+        # Actions de consommation
+        r'j\'ai\s+(?:mangé|pris|bu|consommé)',
+        r'ce\s+(?:midi|matin|soir)\s+j\'ai',
+        
+        # Aliments fitness/musculation
+        r'\d+.*(?:whey|shaker|barre\s+protéinée|créatine|bcaa)',
     ]
     
     text_lower = text.lower().strip()
     
-    # Si le message est très court (1-2 mots) et contient des indicateurs de conversation
+    # PRIORITÉ 1: Vérifier les patterns de tracking d'aliments
+    import re
+    for pattern in food_tracking_patterns:
+        if re.search(pattern, text_lower):
+            print(f"🍽️ TRACKING détecté (pattern: {pattern})")
+            return False
+    
+    # PRIORITÉ 2: Messages très courts avec indicateurs de conversation
     if len(text.split()) <= 2:
         for indicator in conversation_indicators:
             if indicator in text_lower:
-                print(f"💬 Détecté comme CONVERSATION (indicateur court: '{indicator}')")
+                print(f"💬 CONVERSATION détectée (indicateur court: '{indicator}')")
                 return True
     
-    # Vérifier les indicateurs de conversation
-    conversation_score = sum(1 for indicator in conversation_indicators if indicator in text_lower)
+    # PRIORITÉ 3: Vérifier les indicateurs de conversation (sans ambiguïté)
+    conversation_score = 0
+    for indicator in conversation_indicators:
+        if indicator in text_lower:
+            conversation_score += 1
     
-    # Vérifier les indicateurs d'aliments
-    food_score = sum(1 for keyword in food_keywords if keyword in text_lower)
-    
-    print(f"🔍 Scores: conversation={conversation_score}, food={food_score}")
-    
-    # Si c'est clairement de la conversation
-    if conversation_score >= 1 and food_score == 0:
-        print("💬 Détecté comme CONVERSATION (score conversation > 0, pas d'aliment)")
+    # Si c'est clairement de la conversation (sans quantités)
+    if conversation_score >= 1 and not re.search(r'\d+', text):
+        print(f"💬 CONVERSATION détectée (score: {conversation_score}, pas de quantités)")
         return True
     
-    # Si c'est clairement du tracking d'aliment
-    if food_score >= 2 or any(phrase in text_lower for phrase in ['j\'ai mangé', 'j\'ai pris', 'j\'ai bu']):
-        print("🍽️ Détecté comme TRACKING d'aliment")
-        return False
-    
-    # Cas ambigus - privilégier la conversation pour être plus naturel
-    if conversation_score >= food_score:
-        print("💬 Détecté comme CONVERSATION (privilégier conversation)")
-        return True
-    
-    # Par défaut, si aucun indicateur clair, c'est probablement du tracking
+    # Par défaut, si contient des chiffres ou des aliments, c'est du tracking
     print("🍽️ Par défaut: TRACKING d'aliment")
     return False
 
