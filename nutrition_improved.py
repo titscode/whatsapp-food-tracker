@@ -553,88 +553,11 @@ def parse_vision_response_improved(content):
         return None
 
 def get_nutrition_for_ingredient(ingredient, grams):
-    """Base de données nutritionnelle CORRIGÉE avec valeurs réelles pour 100g"""
-    db = {
-        # Légumes (pour 100g)
-        'salade': {'cal': 15, 'prot': 1.4, 'fat': 0.2, 'carb': 2.9},
-        'salade verte': {'cal': 15, 'prot': 1.4, 'fat': 0.2, 'carb': 2.9},
-        'tomate': {'cal': 18, 'prot': 0.9, 'fat': 0.2, 'carb': 3.9},
-        'tomates': {'cal': 18, 'prot': 0.9, 'fat': 0.2, 'carb': 3.9},
-        'tomates cerises': {'cal': 18, 'prot': 0.9, 'fat': 0.2, 'carb': 3.9},
-        'epinards': {'cal': 23, 'prot': 2.9, 'fat': 0.4, 'carb': 3.6},
-        'concombre': {'cal': 16, 'prot': 0.7, 'fat': 0.1, 'carb': 3.6},
-        'carotte': {'cal': 41, 'prot': 0.9, 'fat': 0.2, 'carb': 10},
-        'carottes': {'cal': 41, 'prot': 0.9, 'fat': 0.2, 'carb': 10},
-        'carottes râpées': {'cal': 41, 'prot': 0.9, 'fat': 0.2, 'carb': 10},
-        
-        # Légumineuses (pour 100g)
-        'lentilles': {'cal': 116, 'prot': 9, 'fat': 0.4, 'carb': 20},
-        'haricots': {'cal': 127, 'prot': 8.7, 'fat': 0.5, 'carb': 23},
-        'pois chiches': {'cal': 164, 'prot': 8.9, 'fat': 2.6, 'carb': 27},
-        
-        # Céréales (pour 100g)
-        'flocons d\'avoine': {'cal': 389, 'prot': 16.9, 'fat': 6.9, 'carb': 66},
-        'avoine': {'cal': 389, 'prot': 16.9, 'fat': 6.9, 'carb': 66},
-        'graines de maïs': {'cal': 365, 'prot': 9.4, 'fat': 4.7, 'carb': 74},
-        'maïs': {'cal': 365, 'prot': 9.4, 'fat': 4.7, 'carb': 74},
-        'céréales': {'cal': 380, 'prot': 8, 'fat': 5, 'carb': 75},
-        
-        # Fruits (pour 100g)
-        'avocat': {'cal': 160, 'prot': 2, 'fat': 15, 'carb': 9},
-        'pomme': {'cal': 52, 'prot': 0.3, 'fat': 0.2, 'carb': 14},
-        'pommes': {'cal': 52, 'prot': 0.3, 'fat': 0.2, 'carb': 14},
-        'banane': {'cal': 89, 'prot': 1.1, 'fat': 0.3, 'carb': 23},
-        'bananes': {'cal': 89, 'prot': 1.1, 'fat': 0.3, 'carb': 23},
-        'orange': {'cal': 47, 'prot': 0.9, 'fat': 0.1, 'carb': 12},
-        'oranges': {'cal': 47, 'prot': 0.9, 'fat': 0.1, 'carb': 12},
-        
-        # Protéines (pour 100g)
-        'poulet': {'cal': 239, 'prot': 27, 'fat': 14, 'carb': 0},
-        'whey': {'cal': 400, 'prot': 80, 'fat': 5, 'carb': 5},
-        'œuf': {'cal': 155, 'prot': 13, 'fat': 11, 'carb': 1.1},
-        'oeuf': {'cal': 155, 'prot': 13, 'fat': 11, 'carb': 1.1},
-        'oeufs': {'cal': 155, 'prot': 13, 'fat': 11, 'carb': 1.1},
-        'fromage': {'cal': 402, 'prot': 25, 'fat': 33, 'carb': 1.3},
-        'saumon': {'cal': 208, 'prot': 20, 'fat': 13, 'carb': 0},
-        
-        # Féculents (pour 100g)
-        'riz': {'cal': 130, 'prot': 2.7, 'fat': 0.3, 'carb': 28},
-        'pain': {'cal': 265, 'prot': 9, 'fat': 3.2, 'carb': 49},
-        'pâtes': {'cal': 131, 'prot': 5, 'fat': 1.1, 'carb': 25},
-        'pates': {'cal': 131, 'prot': 5, 'fat': 1.1, 'carb': 25},
-        
-        # Oléagineux (pour 100g)
-        'amandes': {'cal': 579, 'prot': 21, 'fat': 50, 'carb': 22},
-        'amande': {'cal': 579, 'prot': 21, 'fat': 50, 'carb': 22},
-        'noix': {'cal': 654, 'prot': 15, 'fat': 65, 'carb': 14},
-        
-        # Liquides (pour 100ml = 100g)
-        'lait': {'cal': 42, 'prot': 3.4, 'fat': 1, 'carb': 5},
-        
-        # Autres aliments courants
-        'sauce tomate': {'cal': 29, 'prot': 1.6, 'fat': 0.2, 'carb': 7},
-        'sauce aigre douce': {'cal': 120, 'prot': 0.5, 'fat': 0.1, 'carb': 30},
-        'pickles': {'cal': 11, 'prot': 0.3, 'fat': 0.2, 'carb': 2.3},
-        'rösti': {'cal': 150, 'prot': 2, 'fat': 8, 'carb': 18},
-        'rushtis': {'cal': 150, 'prot': 2, 'fat': 8, 'carb': 18},
-        'pain burger': {'cal': 265, 'prot': 9, 'fat': 3.2, 'carb': 49},
-        'bun burger': {'cal': 265, 'prot': 9, 'fat': 3.2, 'carb': 49},
-        'huile olive': {'cal': 884, 'prot': 0, 'fat': 100, 'carb': 0},
-        'beurre': {'cal': 717, 'prot': 0.9, 'fat': 81, 'carb': 0.1},
-    }
+    """
+    Fonction améliorée utilisant la base de données nutritionnelle étendue
+    """
+    # Importer la nouvelle base de données
+    from nutrition_database import get_nutrition_for_ingredient as get_nutrition_enhanced
     
-    # Chercher l'ingrédient (recherche flexible)
-    ingredient_lower = ingredient.lower()
-    for key, vals in db.items():
-        if key in ingredient_lower or ingredient_lower in key:
-            ratio = grams / 100.0
-            return {
-                'calories': vals['cal'] * ratio,
-                'proteins': vals['prot'] * ratio,
-                'fats': vals['fat'] * ratio,
-                'carbs': vals['carb'] * ratio
-            }
-    
-    # Valeur par défaut si aliment non trouvé
-    return {'calories': 25 * grams / 100, 'proteins': 1.5 * grams / 100, 
-            'fats': 0.3 * grams / 100, 'carbs': 5 * grams / 100}
+    # Utiliser la fonction améliorée
+    return get_nutrition_enhanced(ingredient, grams)
