@@ -12,6 +12,7 @@ import time
 from database import init_db, get_user_data, update_user_data
 from nutrition_improved import analyze_food_request
 from utils import send_whatsapp_reply, get_help_message
+from config import current_config, get_environment_info, get_environment_display, get_detection_info
 
 # Import de la logique de conversation
 from nutrition_chat_improved import (
@@ -26,21 +27,24 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# ===== CONFIGURATION LOGGING PRODUCTION =====
+# ===== CONFIGURATION LOGGING MULTI-ENVIRONNEMENTS =====
+env_info = get_environment_info()
+log_level = getattr(logging, env_info['log_level'].upper(), logging.INFO)
+
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=log_level,
+    format=f'%(asctime)s - [{env_info["environment"].upper()}] - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),  # Console pour Railway
-        logging.FileHandler('lea_bot.log', encoding='utf-8')  # Fichier local
+        logging.FileHandler(f'lea_bot_{env_info["environment"]}.log', encoding='utf-8')  # Fichier par environnement
     ]
 )
 logger = logging.getLogger(__name__)
 
-# ===== RATE LIMITING SIMPLE =====
+# ===== RATE LIMITING CONFIGURABLE =====
 user_requests = {}  # {phone_number: [timestamps]}
-RATE_LIMIT_WINDOW = 60  # 1 minute
-RATE_LIMIT_MAX_REQUESTS = 10  # Max 10 messages par minute
+RATE_LIMIT_WINDOW = current_config.RATE_LIMIT_WINDOW
+RATE_LIMIT_MAX_REQUESTS = current_config.RATE_LIMIT_MAX_REQUESTS
 
 def is_rate_limited(phone_number):
     """Vérifie si l'utilisateur dépasse la limite de requêtes"""
@@ -64,12 +68,21 @@ def is_rate_limited(phone_number):
     user_requests[phone_number].append(now)
     return False
 
-# Configuration des clés API depuis .env
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
-TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', 'whatsapp:+14155238886')
+# Configuration des clés API depuis config
+TWILIO_ACCOUNT_SID = current_config.TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN = current_config.TWILIO_AUTH_TOKEN
+TWILIO_PHONE_NUMBER = current_config.TWILIO_PHONE_NUMBER
 
-logger.info(f"🔑 Twilio configuré: {'Oui' if TWILIO_ACCOUNT_SID else 'Non'}")
+# Afficher les informations de détection d'environnement
+detection_info = get_detection_info()
+logger.info(f"[{env_info['environment'].upper()}] 🔍 Détection environnement: {detection_info['detection_method']}")
+if detection_info['railway_url']:
+    logger.info(f"[{env_info['environment'].upper()}] 🌐 URL Railway: {detection_info['railway_url']}")
+logger.info(f"[{env_info['environment'].upper()}] 🎯 Environnement détecté: {detection_info['detected_environment']}")
+
+logger.info(f"[{env_info['environment'].upper()}] 🔑 Twilio configuré: {'Oui' if TWILIO_ACCOUNT_SID else 'Non'}")
+logger.info(f"[{env_info['environment'].upper()}] 📊 Base de données: {env_info['database']}")
+logger.info(f"[{env_info['environment'].upper()}] 🎯 Code d'activation: {env_info['activation_code']}")
 
 # Initialisation du client Twilio avec gestion d'erreur
 try:
@@ -91,7 +104,7 @@ except Exception as e:
 def get_daily_stats():
     """Statistiques business avancées avec DAU, WAU et engagement - INTÉGRÉ"""
     try:
-        conn = sqlite3.connect('lea_nutrition.db')
+        conn = sqlite3.connect(current_config.DATABASE_NAME)
         cursor = conn.cursor()
         
         # 1. Nouveaux utilisateurs aujourd'hui
@@ -153,7 +166,7 @@ def get_daily_stats():
 def get_dau_history_14_days():
     """Récupère l'historique DAU sur 14 jours avec logique de couleur intelligente - INTÉGRÉ"""
     try:
-        conn = sqlite3.connect('lea_nutrition.db')
+        conn = sqlite3.connect(current_config.DATABASE_NAME)
         cursor = conn.cursor()
         
         dau_history = []
@@ -412,9 +425,10 @@ def format_response_message(food_data, user_data):
 
 @app.route('/', methods=['GET'])
 def dashboard_kpi():
-    """Dashboard KPI intégré - RESTAURÉ DEPUIS SAUVEGARDE FONCTIONNELLE"""
+    """Dashboard KPI intégré avec bannière d'environnement"""
     stats = get_daily_stats()
     dau_history = get_dau_history_14_days()
+    env_display = get_environment_display()
     
     # Générer les données pour le graphique DAU 14 jours avec couleurs optimales (VERSION SAUVEGARDÉE)
     dau_chart_data = ""
