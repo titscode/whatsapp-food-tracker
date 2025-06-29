@@ -410,7 +410,7 @@ def whatsapp_webhook():
         return '<Response/>', 200
 
 def format_response_message(food_data, user_data):
-    """Formate le message de réponse propre pour la production"""
+    """Formate le message de réponse propre pour la production avec calories restantes"""
     message_parts = []
     
     if food_data:
@@ -434,15 +434,45 @@ def format_response_message(food_data, user_data):
             "",
         ])
     
-    message_parts.extend([
-        f"📈 *Bilan du jour:*",
-        f"🔥 Calories totales: {user_data.get('daily_calories', 0):.0f} kcal",
-        f"💪 Protéines: {user_data.get('daily_proteins', 0):.1f}g",
-        f"🥑 Lipides: {user_data.get('daily_fats', 0):.1f}g",
-        f"🍞 Glucides: {user_data.get('daily_carbs', 0):.1f}g",
-        "",
-        "💡 Tapez /aide pour plus d'options"
-    ])
+    # Calcul des calories/macros restantes
+    target_calories = user_data.get('target_calories', 0)
+    target_proteins = user_data.get('target_proteins', 0)
+    target_fats = user_data.get('target_fats', 0)
+    target_carbs = user_data.get('target_carbs', 0)
+    
+    daily_calories = user_data.get('daily_calories', 0)
+    daily_proteins = user_data.get('daily_proteins', 0)
+    daily_fats = user_data.get('daily_fats', 0)
+    daily_carbs = user_data.get('daily_carbs', 0)
+    
+    remaining_calories = target_calories - daily_calories
+    remaining_proteins = target_proteins - daily_proteins
+    remaining_fats = target_fats - daily_fats
+    remaining_carbs = target_carbs - daily_carbs
+    
+    # Affichage avec calories restantes
+    if target_calories > 0:  # Si l'utilisateur a des objectifs définis
+        message_parts.extend([
+            f"📈 *Bilan du jour:*",
+            f"🔥 Calories: {daily_calories:.0f} kcal ({remaining_calories:+.0f} restantes)",
+            f"💪 Protéines: {daily_proteins:.1f}g ({remaining_proteins:+.1f}g restantes)",
+            f"🥑 Lipides: {daily_fats:.1f}g ({remaining_fats:+.1f}g restantes)",
+            f"🍞 Glucides: {daily_carbs:.1f}g ({remaining_carbs:+.1f}g restantes)",
+            "",
+            f"🎯 *Objectifs:* {target_calories} kcal | {target_proteins}g | {target_fats}g | {target_carbs}g",
+            "",
+            "💡 Tapez /aide pour plus d'options"
+        ])
+    else:  # Utilisateur sans objectifs (ancien format)
+        message_parts.extend([
+            f"📈 *Bilan du jour:*",
+            f"🔥 Calories totales: {daily_calories:.0f} kcal",
+            f"💪 Protéines: {daily_proteins:.1f}g",
+            f"🥑 Lipides: {daily_fats:.1f}g",
+            f"🍞 Glucides: {daily_carbs:.1f}g",
+            "",
+            "💡 Tapez /aide pour plus d'options"
+        ])
     
     return "\n".join(message_parts)
 

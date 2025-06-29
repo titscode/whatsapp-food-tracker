@@ -138,7 +138,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
             print(f"❌ user_data: {user_data}")
             return f"❌ Erreur technique: {e}. Recommencez avec /first_try"
         
-        # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor
+        # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor CORRIGÉE
         if gender == 'H':  # Homme
             bmr = 10 * weight + 6.25 * 175 + 5 * age + 5  # Hauteur estimée 175cm
         else:  # Femme
@@ -147,12 +147,12 @@ def handle_simple_onboarding(phone_number, message, user_data):
         # TDEE (dépense énergétique totale)
         tdee = bmr * activity_level
         
-        # Ajustement selon l'objectif
+        # Ajustement selon l'objectif - FORMULE CORRIGÉE
         if goal == 'Perdre du poids':
-            calories = int(tdee - 300)  # Déficit de 300 kcal
+            calories = int(tdee * 0.85)  # Déficit de 15%
             proteins_per_kg = 2.0  # Plus de protéines pour préserver la masse musculaire
         elif goal == 'Prendre du muscle':
-            calories = int(tdee + 200)  # Surplus de 200 kcal
+            calories = int(tdee * 1.10)  # Surplus de 10% (au lieu de +200 fixe)
             proteins_per_kg = 2.2  # Protéines pour la croissance
         else:  # Maintenir
             calories = int(tdee)  # Maintenance
