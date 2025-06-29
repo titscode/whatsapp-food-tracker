@@ -253,10 +253,10 @@ def whatsapp_webhook():
             }
             update_user_data(from_number, user_data)
         
-        # Gestion de l'onboarding si pas terminé
+        # PRIORITÉ ABSOLUE : Gestion de l'onboarding si pas terminé
         if not user_data.get('onboarding_complete', True):
-            from nutrition_chat_improved import handle_onboarding_step
-            onboarding_response = handle_onboarding_step(from_number, text_content, user_data)
+            from simple_onboarding import handle_simple_onboarding
+            onboarding_response = handle_simple_onboarding(from_number, text_content, user_data)
             send_whatsapp_reply(from_number, onboarding_response, twilio_client, TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
@@ -285,7 +285,7 @@ def whatsapp_webhook():
             # Créer un nouvel utilisateur avec onboarding à faire
             user_data = {
                 'onboarding_complete': False,
-                'onboarding_step': 'welcome',
+                'onboarding_step': 'start',
                 'daily_calories': 0,
                 'daily_proteins': 0,
                 'daily_fats': 0,
@@ -294,9 +294,9 @@ def whatsapp_webhook():
             }
             update_user_data(from_number, user_data)
             
-            # Lancer l'onboarding
-            from nutrition_chat_improved import handle_onboarding_step
-            onboarding_message = handle_onboarding_step(from_number, text_content, user_data)
+            # Lancer l'onboarding simple
+            from simple_onboarding import handle_simple_onboarding
+            onboarding_message = handle_simple_onboarding(from_number, text_content, user_data)
             send_whatsapp_reply(from_number, onboarding_message, twilio_client, TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
