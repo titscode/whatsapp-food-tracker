@@ -309,12 +309,118 @@ NUTRITION_DATABASE = {
     'coca cola': {'cal': 42, 'prot': 0, 'fat': 0, 'carb': 10.6},
     'coca': {'cal': 42, 'prot': 0, 'fat': 0, 'carb': 10.6},
     
-    # === SUPPLÉMENTS ===
+    # === SUPPLÉMENTS ET FITNESS ===
+    # Protéines en poudre
     'whey': {'cal': 400, 'prot': 80, 'fat': 5, 'carb': 5},
     'protéine whey': {'cal': 400, 'prot': 80, 'fat': 5, 'carb': 5},
     'proteine whey': {'cal': 400, 'prot': 80, 'fat': 5, 'carb': 5},
+    'whey isolate': {'cal': 380, 'prot': 90, 'fat': 1, 'carb': 2},
+    'whey concentrate': {'cal': 410, 'prot': 75, 'fat': 8, 'carb': 8},
+    'whey concentré': {'cal': 410, 'prot': 75, 'fat': 8, 'carb': 8},
+    'whey concentre': {'cal': 410, 'prot': 75, 'fat': 8, 'carb': 8},
+    
+    # Protéines végétales
+    'protéine végétale': {'cal': 380, 'prot': 75, 'fat': 8, 'carb': 10},
+    'proteine vegetale': {'cal': 380, 'prot': 75, 'fat': 8, 'carb': 10},
+    'protéine végane': {'cal': 380, 'prot': 75, 'fat': 8, 'carb': 10},
+    'proteine vegane': {'cal': 380, 'prot': 75, 'fat': 8, 'carb': 10},
+    'protéine de pois': {'cal': 375, 'prot': 80, 'fat': 6, 'carb': 7},
+    'proteine de pois': {'cal': 375, 'prot': 80, 'fat': 6, 'carb': 7},
+    'protéine de riz': {'cal': 380, 'prot': 78, 'fat': 8, 'carb': 8},
+    'proteine de riz': {'cal': 380, 'prot': 78, 'fat': 8, 'carb': 8},
+    'protéine de chanvre': {'cal': 390, 'prot': 50, 'fat': 12, 'carb': 25},
+    'proteine de chanvre': {'cal': 390, 'prot': 50, 'fat': 12, 'carb': 25},
+    'protéine de soja': {'cal': 370, 'prot': 85, 'fat': 3, 'carb': 5},
+    'proteine de soja': {'cal': 370, 'prot': 85, 'fat': 3, 'carb': 5},
+    
+    # Caséine
+    'caséine': {'cal': 360, 'prot': 78, 'fat': 2, 'carb': 8},
+    'caseine': {'cal': 360, 'prot': 78, 'fat': 2, 'carb': 8},
+    'protéine caséine': {'cal': 360, 'prot': 78, 'fat': 2, 'carb': 8},
+    'proteine caseine': {'cal': 360, 'prot': 78, 'fat': 2, 'carb': 8},
+    
+    # Shakers et préparations
+    'shaker': {'cal': 120, 'prot': 25, 'fat': 1, 'carb': 3},  # Shaker moyen avec whey
+    'shaker whey': {'cal': 120, 'prot': 25, 'fat': 1, 'carb': 3},
+    'shaker protéine': {'cal': 120, 'prot': 25, 'fat': 1, 'carb': 3},
+    'shaker proteine': {'cal': 120, 'prot': 25, 'fat': 1, 'carb': 3},
+    'shake protéiné': {'cal': 150, 'prot': 25, 'fat': 2, 'carb': 8},
+    'shake proteine': {'cal': 150, 'prot': 25, 'fat': 2, 'carb': 8},
+    
+    # Gainers
+    'gainer': {'cal': 380, 'prot': 25, 'fat': 5, 'carb': 70},
+    'mass gainer': {'cal': 380, 'prot': 25, 'fat': 5, 'carb': 70},
+    'weight gainer': {'cal': 380, 'prot': 25, 'fat': 5, 'carb': 70},
+    'serious mass': {'cal': 380, 'prot': 25, 'fat': 5, 'carb': 70},
+    
+    # Suppléments énergétiques
     'créatine': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
     'creatine': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'créatine monohydrate': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'creatine monohydrate': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'bcaa': {'cal': 10, 'prot': 2, 'fat': 0, 'carb': 0},
+    'acides aminés': {'cal': 10, 'prot': 2, 'fat': 0, 'carb': 0},
+    'acides amines': {'cal': 10, 'prot': 2, 'fat': 0, 'carb': 0},
+    'glutamine': {'cal': 4, 'prot': 1, 'fat': 0, 'carb': 0},
+    'arginine': {'cal': 4, 'prot': 1, 'fat': 0, 'carb': 0},
+    
+    # Pre-workout et boissons énergétiques
+    'pre workout': {'cal': 15, 'prot': 0, 'fat': 0, 'carb': 4},
+    'pre-workout': {'cal': 15, 'prot': 0, 'fat': 0, 'carb': 4},
+    'booster': {'cal': 15, 'prot': 0, 'fat': 0, 'carb': 4},
+    'boisson énergétique': {'cal': 45, 'prot': 0, 'fat': 0, 'carb': 11},
+    'boisson energetique': {'cal': 45, 'prot': 0, 'fat': 0, 'carb': 11},
+    'energy drink': {'cal': 45, 'prot': 0, 'fat': 0, 'carb': 11},
+    'red bull': {'cal': 45, 'prot': 0, 'fat': 0, 'carb': 11},
+    'monster': {'cal': 50, 'prot': 0, 'fat': 0, 'carb': 13},
+    
+    # Barres protéinées
+    'barre protéinée': {'cal': 200, 'prot': 20, 'fat': 8, 'carb': 15},
+    'barre proteinee': {'cal': 200, 'prot': 20, 'fat': 8, 'carb': 15},
+    'barre de protéine': {'cal': 200, 'prot': 20, 'fat': 8, 'carb': 15},
+    'barre de proteine': {'cal': 200, 'prot': 20, 'fat': 8, 'carb': 15},
+    'protein bar': {'cal': 200, 'prot': 20, 'fat': 8, 'carb': 15},
+    'quest bar': {'cal': 190, 'prot': 21, 'fat': 8, 'carb': 4},  # Faible en glucides
+    'barre énergétique': {'cal': 250, 'prot': 8, 'fat': 9, 'carb': 35},
+    'barre energetique': {'cal': 250, 'prot': 8, 'fat': 9, 'carb': 35},
+    
+    # Avoine et céréales fitness
+    'overnight oats': {'cal': 150, 'prot': 5, 'fat': 3, 'carb': 27},
+    'porridge': {'cal': 150, 'prot': 5, 'fat': 3, 'carb': 27},
+    'porridge protéiné': {'cal': 200, 'prot': 15, 'fat': 4, 'carb': 25},
+    'porridge proteine': {'cal': 200, 'prot': 15, 'fat': 4, 'carb': 25},
+    'muesli protéiné': {'cal': 380, 'prot': 20, 'fat': 8, 'carb': 55},
+    'muesli proteine': {'cal': 380, 'prot': 20, 'fat': 8, 'carb': 55},
+    
+    # Beurres de noix fitness
+    'beurre de cacahuète': {'cal': 588, 'prot': 25, 'fat': 50, 'carb': 20},
+    'beurre de cacahuete': {'cal': 588, 'prot': 25, 'fat': 50, 'carb': 20},
+    'beurre d\'amande': {'cal': 614, 'prot': 21, 'fat': 56, 'carb': 19},
+    'beurre d\'amandes': {'cal': 614, 'prot': 21, 'fat': 56, 'carb': 19},
+    'beurre de noisette': {'cal': 628, 'prot': 15, 'fat': 61, 'carb': 17},
+    'beurre de noisettes': {'cal': 628, 'prot': 15, 'fat': 61, 'carb': 17},
+    'peanut butter': {'cal': 588, 'prot': 25, 'fat': 50, 'carb': 20},
+    'almond butter': {'cal': 614, 'prot': 21, 'fat': 56, 'carb': 19},
+    
+    # Collations fitness
+    'rice cakes': {'cal': 387, 'prot': 8, 'fat': 3, 'carb': 82},
+    'galettes de riz': {'cal': 387, 'prot': 8, 'fat': 3, 'carb': 82},
+    'galette de riz': {'cal': 387, 'prot': 8, 'fat': 3, 'carb': 82},
+    'crackers protéinés': {'cal': 450, 'prot': 25, 'fat': 15, 'carb': 50},
+    'crackers proteines': {'cal': 450, 'prot': 25, 'fat': 15, 'carb': 50},
+    
+    # Édulcorants fitness
+    'stevia': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'érythritol': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'erythritol': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    'xylitol': {'cal': 240, 'prot': 0, 'fat': 0, 'carb': 100},
+    'sucralose': {'cal': 0, 'prot': 0, 'fat': 0, 'carb': 0},
+    
+    # Huiles et graisses fitness
+    'huile de coco': {'cal': 862, 'prot': 0, 'fat': 100, 'carb': 0},
+    'huile mct': {'cal': 855, 'prot': 0, 'fat': 100, 'carb': 0},
+    'mct oil': {'cal': 855, 'prot': 0, 'fat': 100, 'carb': 0},
+    'beurre de coco': {'cal': 670, 'prot': 0, 'fat': 76, 'carb': 6},
 }
 
 # Synonymes et variantes pour améliorer la reconnaissance
@@ -329,6 +435,18 @@ FOOD_SYNONYMS = {
     'salade verte': ['salade', 'laitue', 'mesclun'],
     'fromage blanc': ['faisselle'],
     'yaourt grec': ['yaourt à la grecque'],
+    
+    # Synonymes fitness/musculation
+    'whey': ['protéine whey', 'proteine whey', 'poudre de whey'],
+    'shaker': ['shaker whey', 'shaker protéine', 'shake protéiné'],
+    'barre protéinée': ['barre de protéine', 'protein bar', 'barre proteinee'],
+    'créatine': ['creatine', 'créatine monohydrate'],
+    'beurre de cacahuète': ['beurre de cacahuete', 'peanut butter'],
+    'beurre d\'amande': ['beurre d\'amandes', 'almond butter'],
+    'galettes de riz': ['galette de riz', 'rice cakes'],
+    'protéine végétale': ['proteine vegetale', 'protéine végane', 'proteine vegane'],
+    'boisson énergétique': ['boisson energetique', 'energy drink'],
+    'pre workout': ['pre-workout', 'booster'],
 }
 
 def find_food_in_database(food_name):
