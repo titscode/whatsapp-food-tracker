@@ -21,6 +21,14 @@ def init_db():
             age INTEGER,
             sex TEXT,
             objective TEXT,
+            weight REAL,
+            height REAL DEFAULT 170,
+            activity_level REAL,
+            activity_text TEXT,
+            target_calories INTEGER,
+            target_proteins INTEGER,
+            target_fats INTEGER,
+            target_carbs INTEGER,
             onboarding_step TEXT DEFAULT 'welcome',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -119,13 +127,23 @@ def get_user_data(phone_number):
     
     conn.close()
     
-    # Construire l'objet utilisateur
+    # Construire l'objet utilisateur avec tous les champs onboarding
     user_data = {
         'phone_number': user['phone_number'],
         'name': user['name'],
         'age': user['age'],
         'sex': user['sex'],
+        'gender': user['sex'],  # Mapping pour l'onboarding
         'objective': user['objective'],
+        'goal': user['objective'],  # Mapping pour l'onboarding
+        'weight': user['weight'],
+        'height': user['height'],
+        'activity_level': user['activity_level'],
+        'activity_text': user['activity_text'],
+        'target_calories': user['target_calories'],
+        'target_proteins': user['target_proteins'],
+        'target_fats': user['target_fats'],
+        'target_carbs': user['target_carbs'],
         'onboarding_step': user['onboarding_step'],
         'onboarding_complete': user['onboarding_step'] == 'complete',
         'daily_calories': daily['calories'] if daily else 0,
@@ -141,17 +159,26 @@ def update_user_data(phone_number, user_data):
     """Met à jour les données utilisateur"""
     conn = sqlite3.connect(DATABASE)
     
-    # Mettre à jour les données utilisateur
+    # Mettre à jour les données utilisateur avec mapping des champs
     conn.execute('''
         INSERT OR REPLACE INTO users 
-        (phone_number, name, age, sex, objective, onboarding_step, last_interaction)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (phone_number, name, age, sex, objective, weight, height, activity_level, activity_text, 
+         target_calories, target_proteins, target_fats, target_carbs, onboarding_step, last_interaction)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ''', (
         phone_number,
         user_data.get('name'),
         user_data.get('age'),
-        user_data.get('sex'),
-        user_data.get('objective'),
+        user_data.get('sex') or user_data.get('gender'),  # Support des deux noms
+        user_data.get('objective') or user_data.get('goal'),  # Support des deux noms
+        user_data.get('weight'),
+        user_data.get('height', 170),  # Valeur par défaut
+        user_data.get('activity_level'),
+        user_data.get('activity_text'),
+        user_data.get('target_calories'),
+        user_data.get('target_proteins'),
+        user_data.get('target_fats'),
+        user_data.get('target_carbs'),
         user_data.get('onboarding_step', 'complete')
     ))
     

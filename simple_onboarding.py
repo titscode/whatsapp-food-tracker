@@ -109,11 +109,34 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['activity_level'] = activity_level
         user_data['activity_text'] = activity_text
         
+        # VALIDATION : Vérifier que tous les champs requis sont présents
+        required_fields = ['age', 'weight', 'gender', 'goal']
+        missing_fields = [field for field in required_fields if field not in user_data or user_data[field] is None]
+        
+        if missing_fields:
+            print(f"❌ ERREUR VALIDATION: Champs manquants: {missing_fields}")
+            print(f"❌ user_data disponible: {list(user_data.keys())}")
+            # Essayer de récupérer depuis les champs alternatifs
+            if 'gender' not in user_data and 'sex' in user_data:
+                user_data['gender'] = user_data['sex']
+            if 'goal' not in user_data and 'objective' in user_data:
+                user_data['goal'] = user_data['objective']
+            
+            # Vérifier à nouveau
+            missing_fields = [field for field in required_fields if field not in user_data or user_data[field] is None]
+            if missing_fields:
+                return f"❌ Erreur: Données manquantes ({', '.join(missing_fields)}). Recommencez avec /first_try"
+        
         # Calcul précis des objectifs avec formules standards
-        age = user_data['age']
-        weight = user_data['weight']
-        gender = user_data['gender']
-        goal = user_data['goal']
+        try:
+            age = user_data['age']
+            weight = user_data['weight']
+            gender = user_data['gender']
+            goal = user_data['goal']
+        except KeyError as e:
+            print(f"❌ ERREUR ACCÈS DONNÉES: {e}")
+            print(f"❌ user_data: {user_data}")
+            return f"❌ Erreur technique: {e}. Recommencez avec /first_try"
         
         # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor
         if gender == 'H':  # Homme
