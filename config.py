@@ -6,6 +6,9 @@ load_dotenv()
 def get_environment_info():
     """Détecte l'environnement et retourne les informations appropriées"""
     
+    # Récupérer l'URL Railway dès le début
+    railway_url = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+    
     # 1. Vérifier la variable d'environnement explicite
     env_var = os.getenv('ENVIRONMENT', '').lower()
     if env_var in ['production', 'staging', 'development']:
@@ -13,7 +16,6 @@ def get_environment_info():
         detection_method = f"Variable ENVIRONMENT={env_var}"
     else:
         # 2. Détecter via l'URL Railway
-        railway_url = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
         if railway_url:
             if 'web-production-eed0c' in railway_url:
                 detected_environment = 'production'

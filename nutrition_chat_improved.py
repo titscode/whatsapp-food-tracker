@@ -4,6 +4,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def handle_onboarding_step(phone_number, message, user_data):
+    """Gère les étapes d'onboarding simple avec Léa"""
+    from database import update_user_data
+    
+    step = user_data.get('onboarding_step', 'welcome')
+    
+    if step == 'welcome':
+        # Message d'accueil simple
+        user_data['onboarding_step'] = 'complete'
+        user_data['onboarding_complete'] = True
+        update_user_data(phone_number, user_data)
+        return "Salut ! Moi c'est Léa 👋 Je t'aide à tracker ce que tu manges et améliorer ta santé 💪\n\nTu peux maintenant m'envoyer tes aliments en texte (ex: \"50g de poulet\") ou en photo 📷\n\nTape /aide pour voir toutes mes fonctions !"
+    
+    # Si on arrive ici, l'onboarding est terminé
+    user_data['onboarding_complete'] = True
+    update_user_data(phone_number, user_data)
+    return "Parfait ! Tu peux maintenant me parler normalement ou tracker tes aliments 😊"
+
 def is_conversation_message(text):
     """Détermine si le message est une conversation normale (pas tracking d'aliment)"""
     

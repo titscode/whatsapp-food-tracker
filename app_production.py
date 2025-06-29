@@ -253,6 +253,13 @@ def whatsapp_webhook():
             }
             update_user_data(from_number, user_data)
         
+        # Gestion de l'onboarding si pas terminé
+        if not user_data.get('onboarding_complete', True):
+            from nutrition_chat_improved import handle_onboarding_step
+            onboarding_response = handle_onboarding_step(from_number, text_content, user_data)
+            send_whatsapp_reply(from_number, onboarding_response, twilio_client, TWILIO_PHONE_NUMBER)
+            return '<Response/>', 200
+        
         # Traitement des commandes spéciales
         if text_content.lower() in ['/aide', '/help', '/?']:
             send_whatsapp_reply(from_number, get_help_message(), twilio_client, TWILIO_PHONE_NUMBER)
@@ -269,15 +276,16 @@ def whatsapp_webhook():
             send_whatsapp_reply(from_number, "✅ Vos données du jour ont été remises à zéro!", twilio_client, TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
-        # Commande secrète pour les tests - Reset complet utilisateur
+        # Commande secrète pour les tests - Reset complet utilisateur + lancer onboarding
         if text_content.lower() == '/first_try':
             # Supprimer complètement l'utilisateur de la base de données
             from database import delete_user_data
             delete_user_data(from_number)
             
-            # Créer un nouvel utilisateur
+            # Créer un nouvel utilisateur avec onboarding à faire
             user_data = {
-                'onboarding_complete': True,
+                'onboarding_complete': False,
+                'onboarding_step': 'welcome',
                 'daily_calories': 0,
                 'daily_proteins': 0,
                 'daily_fats': 0,
@@ -285,7 +293,11 @@ def whatsapp_webhook():
                 'meals': []
             }
             update_user_data(from_number, user_data)
-            send_whatsapp_reply(from_number, "✅ Utilisateur réinitialisé!", twilio_client, TWILIO_PHONE_NUMBER)
+            
+            # Lancer l'onboarding
+            from nutrition_chat_improved import handle_onboarding_step
+            onboarding_message = handle_onboarding_step(from_number, text_content, user_data)
+            send_whatsapp_reply(from_number, onboarding_message, twilio_client, TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
         # GESTION DES MESSAGES VOCAUX - TEMPORAIREMENT DÉSACTIVÉ
