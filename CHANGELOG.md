@@ -1,37 +1,5 @@
 # 📋 Changelog - Léa Chatbot Nutrition
 
-## 🚀 v0.91 - Personnalité Léa Améliorée (30/06/2025)
-
-### ✨ **Nouvelles Fonctionnalités**
-- **Messages en 2 parties** : Séparation analyse du plat + bilan du jour
-- **Personnalité coach bienveillante** : Léa plus humaine et encourageante
-- **Conseils nutritionnels poussés** : Insights scientifiques personnalisés
-- **Questions engageantes** : Conversation continue après chaque tracking
-- **Intros positives** : Phrases d'encouragement spécifiques par aliment
-
-### 🔧 **Améliorations UX**
-- **Formatage WhatsApp optimisé** : Utilisation du gras (*texte*) pour la lisibilité
-- **Bilan "consommé / objectif"** : Format plus intuitif (525 / 2200 kcal)
-- **Délai entre messages** : 1.5s pour simuler conversation naturelle
-- **Conseils contextuels** : Selon objectif, heure, et profil utilisateur
-- **Questions personnalisées** : Adaptées à l'objectif et moment de la journée
-
-### 🧠 **Intelligence Nutritionnelle**
-- **Insights scientifiques** : PDCAAS, EPA/DHA, nitrates, acide oléique
-- **Conseils timing** : Métabolisme matin, sérotonine soir, post-workout
-- **Analyse macros avancée** : Synthèse protéique, hormones, glycogène
-- **Recommandations spécifiques** : Par aliment (whey, saumon, épinards, etc.)
-- **Adaptation objectifs** : Prise de masse, perte de poids, maintien
-
-### 💬 **Expérience Conversationnelle**
-- **Coach nutrition IA** : Léa donne des conseils comme une vraie coach
-- **Encouragements personnalisés** : Selon catégorie d'aliment
-- **Questions ouvertes** : Pour maintenir l'engagement utilisateur
-- **Ton bienveillant** : Moins "robot", plus humain et motivant
-
----
-
-
 ## 🚀 v0.90 - Version Stable Refactorisée (30/06/2025)
 
 ### ✨ **Nouvelles Fonctionnalités**
