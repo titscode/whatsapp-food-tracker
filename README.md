@@ -1,6 +1,6 @@
 # 🤖 Léa - Chatbot Nutrition WhatsApp
 
-**Version 3.0 - Code Refactorisé & Optimisé**
+**Version 0.90 - Stable & Optimisée** 🚀
 
 Chatbot intelligent pour le tracking nutritionnel via WhatsApp avec reconnaissance d'aliments avancée et calculs automatiques BMR/TDEE.
 
