@@ -1,5 +1,19 @@
 # 📋 Changelog - Léa Chatbot Nutrition
 
+## 🚀 v0.91 - Nouvelle Version (30/06/2025)
+
+### ✨ **Nouvelles Fonctionnalités**
+- À compléter...
+
+### 🔧 **Améliorations**
+- À compléter...
+
+### 🐛 **Corrections**
+- À compléter...
+
+---
+
+
 ## 🚀 v0.90 - Version Stable Refactorisée (30/06/2025)
 
 ### ✨ **Nouvelles Fonctionnalités**
