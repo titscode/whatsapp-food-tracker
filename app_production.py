@@ -165,14 +165,23 @@ def handle_conversation(text_content, from_number, user_data):
     return False
 
 def handle_food_tracking(text_content, media_url, from_number):
-    """Gère le tracking d'aliments"""
+    """Gère le tracking d'aliments avec messages améliorés"""
     food_data = analyze_food_request(text_content, media_url, lambda msg: logger.debug(msg))
     
     if food_data:
         update_user_nutrition(from_number, food_data)
         user_data = get_user_data(from_number)
-        response = format_response_message(food_data, user_data)
-        send_whatsapp_reply(from_number, response, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        
+        # Message 1 : Analyse du plat avec personnalité
+        message1 = format_food_analysis_message(food_data, user_data)
+        send_whatsapp_reply(from_number, message1, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        
+        # Délai de 1.5 secondes pour simuler une conversation naturelle
+        time.sleep(1.5)
+        
+        # Message 2 : Bilan du jour et question engageante
+        message2 = format_daily_progress_message(user_data)
+        send_whatsapp_reply(from_number, message2, twilio_client, current_config.TWILIO_PHONE_NUMBER)
     else:
         send_whatsapp_reply(
             from_number, 
@@ -240,8 +249,235 @@ def format_response_message(food_data, user_data):
     
     return "\n".join(parts)
 
+def get_encouraging_intro(food_name):
+    """Génère une phrase d'introduction positive et personnalisée"""
+    food_lower = food_name.lower()
+    
+    # Intros spécifiques par catégorie d'aliment
+    if any(word in food_lower for word in ['whey', 'protéine', 'shaker', 'barre protéinée']):
+        intros = [
+            "Excellent choix pour tes muscles ! 💪",
+            "Parfait pour ta récupération ! 🔥",
+            "Super pour atteindre tes objectifs protéines ! 🎯",
+            "Idéal pour optimiser ta synthèse protéique ! ⚡"
+        ]
+    elif any(word in food_lower for word in ['salade', 'légume', 'brocoli', 'épinards', 'tomate']):
+        intros = [
+            "Bravo pour ces légumes ! 🥬",
+            "Excellent pour tes micronutriments ! 🌟",
+            "Parfait choix santé ! 💚",
+            "Top pour tes fibres et vitamines ! ✨"
+        ]
+    elif any(word in food_lower for word in ['saumon', 'thon', 'poisson', 'sardine']):
+        intros = [
+            "Fantastique source d'oméga-3 ! 🐟",
+            "Excellent pour ton cerveau et tes articulations ! 🧠",
+            "Parfait pour tes protéines de qualité ! ⭐",
+            "Super choix pour ta santé cardiovasculaire ! ❤️"
+        ]
+    elif any(word in food_lower for word in ['avocat', 'amandes', 'noix', 'huile olive']):
+        intros = [
+            "Excellentes graisses saines ! 🥑",
+            "Parfait pour tes hormones ! 💪",
+            "Super pour la satiété ! 😌",
+            "Idéal pour l'absorption des vitamines ! 🌟"
+        ]
+    elif any(word in food_lower for word in ['riz', 'pâtes', 'avoine', 'quinoa']):
+        intros = [
+            "Parfait pour ton énergie ! ⚡",
+            "Excellent carburant pour tes muscles ! 🔋",
+            "Idéal pour tes performances ! 🚀",
+            "Super source d'énergie durable ! 💪"
+        ]
+    else:
+        intros = [
+            "Super choix ! 👌",
+            "Excellent ! 🌟",
+            "Parfait ! ✨",
+            "Très bon choix ! 💚"
+        ]
+    
+    import random
+    return random.choice(intros)
+
+def get_advanced_nutrition_insight(food_data, user_data):
+    """Génère un conseil nutritionnel poussé et personnalisé"""
+    food_name = food_data['name'].lower()
+    calories = food_data['calories']
+    proteins = food_data['proteines']
+    fats = food_data['lipides']
+    carbs = food_data['glucides']
+    
+    # Récupérer l'objectif utilisateur
+    objective = user_data.get('objective', 'maintien')
+    
+    insights = []
+    
+    # Analyse des macros
+    if proteins > 20:
+        if objective == 'prise de masse':
+            insights.append("Excellent apport protéique ! Idéal pour stimuler la synthèse protéique musculaire dans les 2h post-entraînement.")
+        else:
+            insights.append("Super apport en protéines ! Parfait pour maintenir ta masse musculaire et optimiser ta satiété.")
+    
+    if fats > 15:
+        if any(word in food_name for word in ['avocat', 'saumon', 'noix', 'amandes', 'huile olive']):
+            insights.append("Ces lipides de qualité vont booster ta production d'hormones anaboliques (testostérone, hormone de croissance).")
+        else:
+            insights.append("Attention aux lipides ! Privilégie les sources d'oméga-3 et monoinsaturées pour optimiser ta composition corporelle.")
+    
+    if carbs > 30:
+        if objective == 'perte de poids':
+            insights.append("Ces glucides sont OK si c'est avant/après ton entraînement pour optimiser tes performances et ta récupération.")
+        else:
+            insights.append("Parfait timing pour ces glucides ! Ils vont reconstituer tes réserves de glycogène musculaire.")
+    
+    # Insights spécifiques par aliment
+    if 'whey' in food_name:
+        insights.append("La whey a un score d'aminogramme parfait (PDCAAS = 1.0) et une vitesse d'absorption optimale (30-60min).")
+    elif 'saumon' in food_name:
+        insights.append("Le saumon apporte de l'EPA/DHA qui réduisent l'inflammation post-exercice et améliorent la récupération.")
+    elif 'épinards' in food_name or 'brocoli' in food_name:
+        insights.append("Ces légumes verts sont riches en nitrates naturels qui améliorent ta vasodilatation et tes performances.")
+    elif 'avocat' in food_name:
+        insights.append("L'avocat contient de l'acide oléique qui optimise l'absorption des caroténoïdes (vitamines liposolubles).")
+    elif 'quinoa' in food_name:
+        insights.append("Le quinoa est une protéine complète végétale rare avec tous les acides aminés essentiels !")
+    
+    # Conseils selon l'heure
+    current_hour = datetime.now().hour
+    if 6 <= current_hour <= 10:  # Matin
+        if carbs > 20:
+            insights.append("Parfait au petit-déjeuner ! Ces glucides vont relancer ton métabolisme après le jeûne nocturne.")
+    elif 17 <= current_hour <= 20:  # Soir
+        if carbs > 30:
+            insights.append("Le soir, ces glucides vont favoriser la production de sérotonine et améliorer ton sommeil.")
+    
+    # Retourner un insight aléatoire ou le plus pertinent
+    if insights:
+        import random
+        return random.choice(insights)
+    else:
+        return "C'est un bon choix équilibré pour tes objectifs ! 👌"
+
+def get_engaging_question(user_data, food_data):
+    """Génère une question engageante pour continuer la conversation"""
+    objective = user_data.get('objective', 'maintien')
+    daily_calories = user_data.get('daily_calories', 0)
+    target_calories = user_data.get('target_calories', 0)
+    
+    questions = []
+    
+    # Questions selon l'objectif
+    if objective == 'prise de masse':
+        questions.extend([
+            "Tu as prévu quoi comme prochain repas pour continuer sur cette lancée ? 💪",
+            "Comment se passe ton entraînement en ce moment ? 🏋️",
+            "Tu arrives à atteindre tes calories facilement ou c'est un défi ? 🎯"
+        ])
+    elif objective == 'perte de poids':
+        questions.extend([
+            "Comment tu te sens niveau satiété ? Ça tient bien au ventre ? 😌",
+            "Tu as d'autres repas prévus aujourd'hui ? 🤔",
+            "Ça se passe bien ton déficit calorique ? Pas trop de fringales ? 💪"
+        ])
+    else:
+        questions.extend([
+            "Comment tu te sens après ce repas ? 😊",
+            "Tu as prévu quoi pour la suite de ta journée ? 🌟",
+            "Ça te donne envie de quoi comme prochain repas ? 🤔"
+        ])
+    
+    # Questions selon le moment de la journée
+    current_hour = datetime.now().hour
+    if 6 <= current_hour <= 10:
+        questions.append("Bon début de journée ! Tu as prévu quoi pour le déjeuner ? ☀️")
+    elif 11 <= current_hour <= 14:
+        questions.append("Parfait pour le déjeuner ! Tu as un entraînement prévu cet après-midi ? 💪")
+    elif 17 <= current_hour <= 21:
+        questions.append("Bon dîner ! Tu as bien mangé dans la journée ? 🌙")
+    
+    # Questions selon les calories restantes
+    if target_calories > 0:
+        remaining = target_calories - daily_calories
+        if remaining > 800:
+            questions.append("Il te reste pas mal de calories ! Tu as faim ou ça va ? 🍽️")
+        elif remaining < 200:
+            questions.append("Tu approches de ton objectif ! Comment tu te sens ? 🎯")
+    
+    import random
+    return random.choice(questions)
+
+def format_food_analysis_message(food_data, user_data):
+    """Message 1 : Analyse du plat avec personnalité de Léa"""
+    parts = []
+    
+    # 1. Introduction positive
+    intro = get_encouraging_intro(food_data['name'])
+    parts.append(intro)
+    
+    # 2. Analyse détaillée
+    if food_data.get('ingredients'):
+        total_weight = food_data.get('total_weight', 0)
+        parts.append(f"\n🍽️ *Ingrédients détectés* ({total_weight}g) :")
+        
+        for ing in food_data['ingredients'][:5]:
+            parts.append(f"• {ing['name']} ({ing['grams']}g) — {ing['calories']:.0f} kcal")
+    
+    # 3. Valeurs nutritionnelles avec mise en forme
+    parts.extend([
+        f"\n📊 *Valeurs nutritionnelles :*",
+        f"🔥 *Calories :* {food_data['calories']:.0f} kcal",
+        f"💪 *Protéines :* {food_data['proteines']:.1f}g",
+        f"🥑 *Lipides :* {food_data['lipides']:.1f}g",
+        f"🍞 *Glucides :* {food_data['glucides']:.1f}g"
+    ])
+    
+    # 4. Conseil nutritionnel poussé de Léa
+    insight = get_advanced_nutrition_insight(food_data, user_data)
+    parts.append(f"\n💡 *Le conseil de Léa :* {insight}")
+    
+    return "\n".join(parts)
+
+def format_daily_progress_message(user_data):
+    """Message 2 : Bilan du jour et question engageante"""
+    parts = ["Voici où tu en es pour aujourd'hui :"]
+    
+    target_calories = user_data.get('target_calories', 0)
+    daily_calories = user_data.get('daily_calories', 0)
+    daily_proteins = user_data.get('daily_proteins', 0)
+    daily_fats = user_data.get('daily_fats', 0)
+    daily_carbs = user_data.get('daily_carbs', 0)
+    
+    if target_calories > 0:
+        # Avec objectifs - Format "consommé / objectif"
+        target_proteins = user_data.get('target_proteins', 0)
+        target_fats = user_data.get('target_fats', 0)
+        target_carbs = user_data.get('target_carbs', 0)
+        
+        parts.extend([
+            f"\n🔥 *Calories :* {daily_calories:.0f} / {target_calories} kcal",
+            f"💪 *Protéines :* {daily_proteins:.1f} / {target_proteins}g",
+            f"🥑 *Lipides :* {daily_fats:.1f} / {target_fats}g",
+            f"🍞 *Glucides :* {daily_carbs:.1f} / {target_carbs}g"
+        ])
+    else:
+        # Sans objectifs
+        parts.extend([
+            f"\n🔥 *Calories totales :* {daily_calories:.0f} kcal",
+            f"💪 *Protéines :* {daily_proteins:.1f}g",
+            f"🥑 *Lipides :* {daily_fats:.1f}g",
+            f"🍞 *Glucides :* {daily_carbs:.1f}g"
+        ])
+    
+    # Question engageante
+    question = get_engaging_question(user_data, None)
+    parts.append(f"\n{question}")
+    
+    return "\n".join(parts)
+
 def format_daily_summary(user_data):
-    """Formate le bilan nutritionnel du jour"""
+    """Formate le bilan nutritionnel du jour (ancienne fonction conservée)"""
     target_calories = user_data.get('target_calories', 0)
     daily_calories = user_data.get('daily_calories', 0)
     daily_proteins = user_data.get('daily_proteins', 0)
