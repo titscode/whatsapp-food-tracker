@@ -895,14 +895,8 @@ def check_premium_limit(from_number, user_data):
     message_count = increment_message_count(from_number)
     logger.info(f"💬 Message #{message_count} pour {from_number}")
     
-    # Vérifier la limite de 30 messages
-    if message_count > 30:
-        # Envoyer le message de rappel premium
-        reminder_message = format_premium_reminder()
-        send_whatsapp_reply(from_number, reminder_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
-        return False  # Bloquer le message
-    
-    return True  # Autoriser le message
+    # TOUJOURS autoriser le message, ne jamais bloquer
+    return True
 
 @app.route('/whatsapp', methods=['POST', 'GET'])
 def whatsapp_webhook():

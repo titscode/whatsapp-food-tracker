@@ -77,21 +77,21 @@ def verify_payment(session_id):
 
 def get_premium_message(phone_number, user_name=""):
     """Génère le message premium avec lien de paiement direct"""
-    # Utiliser le lien Stripe direct fourni
-    payment_link = "https://buy.stripe.com/6oU6oIbcCdL661s3833cc00"
+    # Utiliser le nouveau lien Stripe direct fourni
+    payment_link = "https://buy.stripe.com/00w4gAgwWePa1LccID3cc02"
     
     message = f"""🔒 *Limite atteinte !*
 
 Salut {user_name} ! Tu as utilisé tes 30 messages gratuits. 
 
-🌟 *Passe à Léa Premium pour :*
+🌟 *Passe à Léa Performance pour :*
 • Messages illimités pendant 12 mois
-• Analyses nutritionnelles avancées  
-• Conseils personnalisés prioritaires
-• Support client dédié
+• Score de performance 0-100 pour chaque plat
+• Classement pour booster ta motivation
+• Réponses ultra-rapides sans publicité
 
-💰 *Offre spéciale : 60 CHF pour 12 mois*
-(soit seulement 5 CHF/mois !)
+💰 *Offre spéciale : 50 CHF pour 12 mois*
+(soit seulement 4.17 CHF/mois !)
 
 👆 *Clique ici pour débloquer :*
 {payment_link}
@@ -112,25 +112,25 @@ Tape */premium* pour obtenir ton lien de paiement."""
 
 def get_premium_reminder_before_response(user_name=""):
     """Message premium optimisé qui apparaît avant chaque réponse de Léa après 30 messages"""
-    payment_link = "https://buy.stripe.com/6oU6oIbcCdL661s3833cc00"
+    payment_link = "https://buy.stripe.com/00w4gAgwWePa1LccID3cc02"
     
-    message = f"""🚀 *{user_name}, débloquez Léa Premium maintenant !*
+    message = f"""🏆 *{user_name}, passez à la vitesse supérieure !*
 
-Vous avez épuisé vos 30 messages gratuits. Pour continuer à recevoir mes analyses nutritionnelles personnalisées et mes conseils d'expert, passez à Léa Premium !
+Vous avez utilisé vos 30 messages gratuits. Débloquez *Léa Performance* et maximisez vos résultats !
 
-✨ *Pourquoi choisir Léa Premium ?*
-• 🔥 Analyses illimitées pendant 12 mois complets
-• 🎯 Conseils nutrition ultra-personnalisés 
-• ⚡ Réponses prioritaires et support dédié
-• 📊 Suivi avancé de vos objectifs
+🎯 *Léa Performance - Conçu pour l'excellence :*
+• 📊 Score de performance 0-100 pour chaque plat
+• 🏅 Classement pour booster votre motivation
+• ⚡ Réponses ultra-rapides sans publicité
+• 🔥 Messages illimités pendant 12 mois
 
-💎 *Offre exclusive : 60 CHF seulement*
-(Moins de 5 CHF/mois - le prix d'un café !)
+💎 *Seulement 50 CHF pour 12 mois*
+(4.17 CHF/mois - moins qu'un café !)
 
-👆 *CLIQUEZ ICI MAINTENANT :*
+👆 *DÉBLOQUEZ MAINTENANT :*
 {payment_link}
 
-⏰ Cette offre ne durera pas éternellement !
+🚀 Grimpez dans le classement et atteignez vos objectifs !
 
 ---"""
 
