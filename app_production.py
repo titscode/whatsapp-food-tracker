@@ -8,7 +8,10 @@ from datetime import datetime, timedelta
 import time
 
 # Imports des modules
-from database import init_db, get_user_data, update_user_data, delete_user_data
+from database import (
+    init_db, get_user_data, update_user_data, delete_user_data,
+    increment_message_count, is_user_premium, get_user_message_count, set_test_message_count
+)
 from nutrition_improved import analyze_food_request
 from utils import send_whatsapp_reply, get_help_message
 from config import current_config, get_environment_info, get_detection_info
@@ -18,6 +21,7 @@ from nutrition_chat_improved import (
     chat_with_lea_natural, 
     chat_with_nutrition_expert
 )
+from stripe_payment import get_premium_message, format_premium_reminder, verify_payment, get_premium_reminder_before_response
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -103,6 +107,25 @@ def handle_special_commands(text_content, from_number, user_data):
         restart_onboarding(from_number)
         return True
     
+    if text_lower in ['/premium', '/upgrade']:
+        user_name = user_data.get('name', 'Utilisateur')
+        premium_message = get_premium_message(from_number, user_name)
+        send_whatsapp_reply(from_number, premium_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return True
+    
+    # Commandes de test pour simuler la limite de 30 messages
+    if text_lower == '/on30':
+        set_test_message_count(from_number, 31)  # Simuler dépassement de limite
+        current_count = get_user_message_count(from_number)
+        send_whatsapp_reply(from_number, f"🧪 *Mode test activé*\n\nCompteur défini à {current_count} messages.\nTu es maintenant en mode 'limite atteinte' pour tester l'expérience premium.", twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return True
+    
+    if text_lower == '/off30':
+        set_test_message_count(from_number, 0)  # Remettre à zéro
+        current_count = get_user_message_count(from_number)
+        send_whatsapp_reply(from_number, f"🧪 *Mode test désactivé*\n\nCompteur remis à {current_count} messages.\nTu peux maintenant utiliser Léa normalement.", twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return True
+    
     return False
 
 def reset_daily_data(from_number, user_data):
@@ -150,14 +173,40 @@ def handle_onboarding(from_number, text_content, user_data):
         send_whatsapp_reply(from_number, f"Erreur onboarding: {e}", twilio_client, current_config.TWILIO_PHONE_NUMBER)
         return True
 
+def send_premium_reminder_if_needed(from_number, user_data):
+    """Envoie le message premium optimisé si l'utilisateur a dépassé 30 messages"""
+    # Ne pas envoyer pendant l'onboarding
+    if not user_data.get('onboarding_complete', True):
+        return False
+    
+    # Ne pas envoyer si l'utilisateur est premium
+    if is_user_premium(from_number):
+        return False
+    
+    # Vérifier si l'utilisateur a dépassé 30 messages
+    message_count = get_user_message_count(from_number)
+    if message_count > 30:
+        user_name = user_data.get('name', 'Utilisateur')
+        premium_reminder = get_premium_reminder_before_response(user_name)
+        send_whatsapp_reply(from_number, premium_reminder, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return True
+    
+    return False
+
 def handle_conversation(text_content, from_number, user_data):
     """Gère les messages de conversation"""
     if is_conversation_message(text_content):
+        # Envoyer le rappel premium AVANT la réponse si nécessaire
+        send_premium_reminder_if_needed(from_number, user_data)
+        
         response = chat_with_lea_natural(text_content, user_data)
         send_whatsapp_reply(from_number, response, twilio_client, current_config.TWILIO_PHONE_NUMBER)
         return True
     
     if is_nutrition_question(text_content):
+        # Envoyer le rappel premium AVANT la réponse si nécessaire
+        send_premium_reminder_if_needed(from_number, user_data)
+        
         response = chat_with_nutrition_expert(text_content, user_data)
         send_whatsapp_reply(from_number, response, twilio_client, current_config.TWILIO_PHONE_NUMBER)
         return True
@@ -172,6 +221,9 @@ def handle_food_tracking(text_content, media_url, from_number):
         update_user_nutrition(from_number, food_data)
         user_data = get_user_data(from_number)
         
+        # Envoyer le rappel premium AVANT la réponse si nécessaire
+        send_premium_reminder_if_needed(from_number, user_data)
+        
         # Message 1 : Analyse de l'aliment avec personnalité de Léa
         message1 = format_food_analysis_message(food_data, user_data)
         send_whatsapp_reply(from_number, message1, twilio_client, current_config.TWILIO_PHONE_NUMBER)
@@ -183,6 +235,10 @@ def handle_food_tracking(text_content, media_url, from_number):
         message2 = format_daily_progress_message(user_data)
         send_whatsapp_reply(from_number, message2, twilio_client, current_config.TWILIO_PHONE_NUMBER)
     else:
+        # Envoyer le rappel premium AVANT la réponse d'erreur si nécessaire
+        user_data = get_user_data(from_number)
+        send_premium_reminder_if_needed(from_number, user_data)
+        
         send_whatsapp_reply(
             from_number, 
             "😓 Je n'ai pas réussi à identifier cet aliment. Peux-tu me donner plus de détails ou essayer avec une photo plus claire ? 🤔", 
@@ -518,7 +574,336 @@ def get_engaging_question(user_data):
     import random
     return random.choice(questions)
 
+# ===== GESTION SMS ENTRANTS =====
+def init_sms_database():
+    """Initialise la table pour stocker les SMS entrants"""
+    try:
+        conn = sqlite3.connect(current_config.DATABASE_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS incoming_sms (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_number TEXT NOT NULL,
+                to_number TEXT NOT NULL,
+                body TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                message_sid TEXT UNIQUE,
+                status TEXT DEFAULT 'received'
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        logger.info("✅ Table SMS initialisée")
+    except Exception as e:
+        logger.error(f"❌ Erreur init SMS DB: {e}")
+
+def store_incoming_sms(from_number, to_number, body, message_sid):
+    """Stocke un SMS entrant dans la base de données"""
+    try:
+        conn = sqlite3.connect(current_config.DATABASE_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR IGNORE INTO incoming_sms 
+            (from_number, to_number, body, message_sid)
+            VALUES (?, ?, ?, ?)
+        ''', (from_number, to_number, body, message_sid))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"📨 SMS stocké: {from_number} -> {to_number}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Erreur stockage SMS: {e}")
+        return False
+
+def get_recent_sms(limit=50):
+    """Récupère les SMS récents"""
+    try:
+        conn = sqlite3.connect(current_config.DATABASE_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT from_number, to_number, body, timestamp, message_sid, status
+            FROM incoming_sms 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        ''', (limit,))
+        
+        sms_list = []
+        for row in cursor.fetchall():
+            sms_list.append({
+                'from': row[0],
+                'to': row[1],
+                'body': row[2],
+                'timestamp': row[3],
+                'message_sid': row[4],
+                'status': row[5]
+            })
+        
+        conn.close()
+        return sms_list
+    except Exception as e:
+        logger.error(f"❌ Erreur récupération SMS: {e}")
+        return []
+
+# Initialiser la base SMS au démarrage
+init_sms_database()
+
 # ===== ROUTES =====
+@app.route('/sms', methods=['POST', 'GET'])
+def sms_webhook():
+    """Webhook pour recevoir les SMS entrants"""
+    if request.method == 'GET':
+        return "Webhook SMS actif!", 200
+    
+    try:
+        from_number = request.form.get('From', '')
+        to_number = request.form.get('To', '')
+        body = request.form.get('Body', '')
+        message_sid = request.form.get('MessageSid', '')
+        
+        logger.info(f"📨 SMS reçu de {from_number} vers {to_number}: '{body}'")
+        
+        # Stocker le SMS
+        store_incoming_sms(from_number, to_number, body, message_sid)
+        
+        return '<Response/>', 200
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur webhook SMS: {e}")
+        return '<Response/>', 500
+
+@app.route('/sms-inbox')
+def sms_inbox():
+    """Page pour voir les SMS entrants"""
+    sms_list = get_recent_sms(100)
+    
+    # Filtrer les SMS pour le numéro spécifique
+    target_number = "+41245391230"
+    filtered_sms = [sms for sms in sms_list if target_number in sms['to']]
+    
+    # Générer les SMS en HTML
+    sms_html = ""
+    if filtered_sms:
+        for sms in filtered_sms:
+            # Mettre en évidence les codes de vérification (6 chiffres)
+            body = sms['body']
+            if body and len(body.strip()) == 6 and body.strip().isdigit():
+                body_display = f'<span class="verification-code">{body}</span>'
+            else:
+                body_display = body or "Pas de contenu"
+            
+            timestamp = datetime.strptime(sms['timestamp'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+            
+            sms_html += f'''
+            <div class="sms-item">
+                <div class="sms-header">
+                    <span class="sms-from">De: {sms['from']}</span>
+                    <span class="sms-time">{timestamp}</span>
+                </div>
+                <div class="sms-body">{body_display}</div>
+                <div class="sms-meta">Vers: {sms['to']} | ID: {sms['message_sid'][:8]}...</div>
+            </div>
+            '''
+    else:
+        sms_html = '<div class="no-sms">Aucun SMS reçu pour ce numéro</div>'
+    
+    return f'''
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>📨 SMS Inbox - {target_number}</title>
+        <style>
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                margin: 0; 
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                min-height: 100vh; 
+                padding: 20px;
+            }}
+            .container {{ 
+                max-width: 800px; 
+                margin: 0 auto; 
+                background: white; 
+                border-radius: 20px; 
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+                overflow: hidden; 
+            }}
+            .header {{ 
+                background: linear-gradient(135deg, #FF6B6B, #FF8E53); 
+                color: white; 
+                padding: 30px; 
+                text-align: center; 
+            }}
+            .header h1 {{ 
+                margin: 0; 
+                font-size: 2em; 
+                font-weight: 300; 
+            }}
+            .phone-number {{ 
+                background: rgba(255,255,255,0.2); 
+                padding: 8px 16px; 
+                border-radius: 15px; 
+                display: inline-block; 
+                margin-top: 10px; 
+                font-family: monospace;
+                font-size: 1.1em;
+            }}
+            .refresh-btn {{ 
+                background: #4CAF50; 
+                color: white; 
+                border: none; 
+                padding: 10px 20px; 
+                border-radius: 10px; 
+                cursor: pointer; 
+                margin: 20px; 
+                font-size: 1em;
+            }}
+            .refresh-btn:hover {{ background: #45a049; }}
+            .sms-container {{ 
+                padding: 20px; 
+                max-height: 600px; 
+                overflow-y: auto; 
+            }}
+            .sms-item {{ 
+                border: 1px solid #e0e0e0; 
+                border-radius: 10px; 
+                padding: 15px; 
+                margin-bottom: 15px; 
+                background: #f9f9f9;
+                transition: transform 0.2s;
+            }}
+            .sms-item:hover {{ transform: translateY(-2px); }}
+            .sms-header {{ 
+                display: flex; 
+                justify-content: space-between; 
+                margin-bottom: 10px; 
+                font-size: 0.9em; 
+                color: #666; 
+            }}
+            .sms-from {{ font-weight: bold; color: #333; }}
+            .sms-time {{ color: #888; }}
+            .sms-body {{ 
+                font-size: 1.1em; 
+                margin: 10px 0; 
+                padding: 10px; 
+                background: white; 
+                border-radius: 8px;
+                border-left: 4px solid #4CAF50;
+            }}
+            .verification-code {{ 
+                background: #FFD700; 
+                color: #333; 
+                padding: 5px 10px; 
+                border-radius: 5px; 
+                font-weight: bold; 
+                font-size: 1.3em;
+                font-family: monospace;
+                border: 2px solid #FFA500;
+            }}
+            .sms-meta {{ 
+                font-size: 0.8em; 
+                color: #999; 
+                margin-top: 8px; 
+            }}
+            .no-sms {{ 
+                text-align: center; 
+                color: #666; 
+                font-style: italic; 
+                padding: 40px; 
+            }}
+            .stats {{ 
+                background: #f0f0f0; 
+                padding: 15px; 
+                text-align: center; 
+                color: #666; 
+            }}
+            .auto-refresh {{ 
+                position: fixed; 
+                top: 20px; 
+                right: 20px; 
+                background: rgba(0,0,0,0.7); 
+                color: white; 
+                padding: 10px; 
+                border-radius: 10px; 
+                font-size: 0.9em;
+            }}
+        </style>
+        <script>
+            // Auto-refresh toutes les 10 secondes
+            setTimeout(function() {{
+                location.reload();
+            }}, 10000);
+            
+            // Copier le code de vérification au clic
+            function copyCode(element) {{
+                navigator.clipboard.writeText(element.textContent);
+                element.style.background = '#90EE90';
+                setTimeout(() => element.style.background = '#FFD700', 1000);
+            }}
+        </script>
+    </head>
+    <body>
+        <div class="auto-refresh">🔄 Auto-refresh: 10s</div>
+        
+        <div class="container">
+            <div class="header">
+                <h1>📨 SMS Inbox</h1>
+                <div class="phone-number">{target_number}</div>
+            </div>
+            
+            <button class="refresh-btn" onclick="location.reload()">🔄 Actualiser</button>
+            
+            <div class="sms-container">
+                {sms_html}
+            </div>
+            
+            <div class="stats">
+                <strong>Total SMS reçus:</strong> {len(filtered_sms)} | 
+                <strong>Dernière MAJ:</strong> {datetime.now().strftime('%H:%M:%S')}
+            </div>
+        </div>
+        
+        <script>
+            // Rendre les codes de vérification cliquables
+            document.querySelectorAll('.verification-code').forEach(code => {{
+                code.style.cursor = 'pointer';
+                code.title = 'Cliquer pour copier';
+                code.onclick = () => copyCode(code);
+            }});
+        </script>
+    </body>
+    </html>
+    '''
+
+def check_premium_limit(from_number, user_data):
+    """Vérifie si l'utilisateur a atteint la limite et gère le premium"""
+    # Ne pas compter les messages d'onboarding
+    if not user_data.get('onboarding_complete', True):
+        return True  # Autoriser pendant l'onboarding
+    
+    # Vérifier si l'utilisateur est premium
+    if is_user_premium(from_number):
+        return True  # Utilisateur premium, pas de limite
+    
+    # Incrémenter le compteur de messages
+    message_count = increment_message_count(from_number)
+    logger.info(f"💬 Message #{message_count} pour {from_number}")
+    
+    # Vérifier la limite de 30 messages
+    if message_count > 30:
+        # Envoyer le message de rappel premium
+        reminder_message = format_premium_reminder()
+        send_whatsapp_reply(from_number, reminder_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return False  # Bloquer le message
+    
+    return True  # Autoriser le message
+
 @app.route('/whatsapp', methods=['POST', 'GET'])
 def whatsapp_webhook():
     """Point d'entrée principal pour les messages WhatsApp"""
@@ -565,6 +950,10 @@ def whatsapp_webhook():
         
         if handle_special_commands(text_content, from_number, user_data):
             return '<Response/>', 200
+        
+        # Vérifier la limite premium AVANT de traiter le message
+        if not check_premium_limit(from_number, user_data):
+            return '<Response/>', 200  # Message bloqué, rappel premium envoyé
         
         # Messages vocaux (désactivés)
         if not text_content and media_url and 'audio' in request.form.get('MediaContentType0', ''):
@@ -739,6 +1128,232 @@ def dashboard():
     </body>
     </html>
     """
+
+@app.route('/payment-success')
+def payment_success():
+    """Page de succès après paiement Stripe"""
+    session_id = request.args.get('session_id')
+    phone_number = request.args.get('phone')
+    
+    if session_id:
+        # Vérifier le paiement
+        success, verified_phone = verify_payment(session_id)
+        
+        if success and verified_phone:
+            logger.info(f"✅ Paiement vérifié pour {verified_phone}")
+            
+            # Envoyer un message de confirmation WhatsApp
+            confirmation_message = """🎉 *Paiement confirmé !*
+
+Félicitations ! Ton abonnement Léa Premium est maintenant actif pour 12 mois.
+
+✨ *Tu peux maintenant :*
+• Envoyer des messages illimités
+• Profiter de toutes les analyses avancées
+• Bénéficier du support prioritaire
+
+Merci de faire confiance à Léa ! 💚
+
+Continue à m'envoyer tes repas, je suis là pour t'accompagner ! 🍎"""
+            
+            send_whatsapp_reply(verified_phone, confirmation_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+            
+            return f'''
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>✅ Paiement Confirmé - Léa Premium</title>
+                <style>
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                        margin: 0; 
+                        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
+                        min-height: 100vh; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;
+                        padding: 20px;
+                    }}
+                    .container {{ 
+                        max-width: 500px; 
+                        background: white; 
+                        border-radius: 20px; 
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+                        padding: 40px; 
+                        text-align: center;
+                    }}
+                    .success-icon {{ 
+                        font-size: 4em; 
+                        margin-bottom: 20px; 
+                    }}
+                    h1 {{ 
+                        color: #4CAF50; 
+                        margin-bottom: 20px; 
+                    }}
+                    .features {{ 
+                        background: #f8f9fa; 
+                        border-radius: 10px; 
+                        padding: 20px; 
+                        margin: 20px 0; 
+                        text-align: left;
+                    }}
+                    .feature {{ 
+                        margin: 10px 0; 
+                        display: flex; 
+                        align-items: center; 
+                    }}
+                    .feature-icon {{ 
+                        margin-right: 10px; 
+                        font-size: 1.2em; 
+                    }}
+                    .whatsapp-btn {{ 
+                        background: #25D366; 
+                        color: white; 
+                        padding: 15px 30px; 
+                        border: none; 
+                        border-radius: 10px; 
+                        font-size: 1.1em; 
+                        cursor: pointer; 
+                        text-decoration: none; 
+                        display: inline-block; 
+                        margin-top: 20px;
+                    }}
+                    .whatsapp-btn:hover {{ background: #128C7E; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="success-icon">🎉</div>
+                    <h1>Paiement Confirmé !</h1>
+                    <p><strong>Félicitations ! Ton abonnement Léa Premium est maintenant actif pour 12 mois.</strong></p>
+                    
+                    <div class="features">
+                        <div class="feature">
+                            <span class="feature-icon">💬</span>
+                            <span>Messages illimités pendant 12 mois</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🔬</span>
+                            <span>Analyses nutritionnelles avancées</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">⚡</span>
+                            <span>Support client prioritaire</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🎯</span>
+                            <span>Conseils personnalisés experts</span>
+                        </div>
+                    </div>
+                    
+                    <p>Un message de confirmation a été envoyé sur WhatsApp.</p>
+                    
+                    <a href="https://wa.me/14155238886" class="whatsapp-btn">
+                        📱 Retourner sur WhatsApp
+                    </a>
+                </div>
+            </body>
+            </html>
+            '''
+    
+    return '''
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>❌ Erreur - Léa Premium</title>
+    </head>
+    <body>
+        <h1>❌ Erreur de vérification</h1>
+        <p>Impossible de vérifier le paiement. Contactez le support.</p>
+    </body>
+    </html>
+    '''
+
+@app.route('/payment-cancel')
+def payment_cancel():
+    """Page d'annulation de paiement"""
+    phone_number = request.args.get('phone')
+    
+    return f'''
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>❌ Paiement Annulé - Léa Premium</title>
+        <style>
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                margin: 0; 
+                background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+                min-height: 100vh; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                padding: 20px;
+            }}
+            .container {{ 
+                max-width: 500px; 
+                background: white; 
+                border-radius: 20px; 
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+                padding: 40px; 
+                text-align: center;
+            }}
+            .cancel-icon {{ 
+                font-size: 4em; 
+                margin-bottom: 20px; 
+            }}
+            h1 {{ 
+                color: #FF6B6B; 
+                margin-bottom: 20px; 
+            }}
+            .retry-btn {{ 
+                background: #4CAF50; 
+                color: white; 
+                padding: 15px 30px; 
+                border: none; 
+                border-radius: 10px; 
+                font-size: 1.1em; 
+                cursor: pointer; 
+                text-decoration: none; 
+                display: inline-block; 
+                margin: 10px;
+            }}
+            .retry-btn:hover {{ background: #45a049; }}
+            .whatsapp-btn {{ 
+                background: #25D366; 
+                color: white; 
+                padding: 15px 30px; 
+                border: none; 
+                border-radius: 10px; 
+                font-size: 1.1em; 
+                cursor: pointer; 
+                text-decoration: none; 
+                display: inline-block; 
+                margin: 10px;
+            }}
+            .whatsapp-btn:hover {{ background: #128C7E; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="cancel-icon">😔</div>
+            <h1>Paiement Annulé</h1>
+            <p>Pas de souci ! Tu peux réessayer quand tu veux.</p>
+            <p>Tape <strong>/premium</strong> sur WhatsApp pour obtenir un nouveau lien de paiement.</p>
+            
+            <a href="https://wa.me/14155238886" class="whatsapp-btn">
+                📱 Retourner sur WhatsApp
+            </a>
+        </div>
+    </body>
+    </html>
+    '''
 
 @app.route('/api/stats')
 def api_stats():

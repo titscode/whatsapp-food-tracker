@@ -30,6 +30,10 @@ def init_db():
             target_fats INTEGER,
             target_carbs INTEGER,
             onboarding_step TEXT DEFAULT 'welcome',
+            message_count INTEGER DEFAULT 0,
+            is_premium BOOLEAN DEFAULT 0,
+            premium_expires_at TIMESTAMP,
+            stripe_customer_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -70,6 +74,104 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+def increment_message_count(phone_number):
+    """Incrémente le compteur de messages pour un utilisateur"""
+    conn = sqlite3.connect(DATABASE)
+    
+    conn.execute('''
+        UPDATE users 
+        SET message_count = message_count + 1, last_interaction = CURRENT_TIMESTAMP
+        WHERE phone_number = ?
+    ''', (phone_number,))
+    
+    # Récupérer le nouveau compteur
+    result = conn.execute(
+        'SELECT message_count FROM users WHERE phone_number = ?',
+        (phone_number,)
+    ).fetchone()
+    
+    conn.commit()
+    conn.close()
+    
+    return result[0] if result else 0
+
+def is_user_premium(phone_number):
+    """Vérifie si un utilisateur est premium et si son abonnement est valide"""
+    conn = sqlite3.connect(DATABASE)
+    
+    result = conn.execute('''
+        SELECT is_premium, premium_expires_at 
+        FROM users 
+        WHERE phone_number = ?
+    ''', (phone_number,)).fetchone()
+    
+    conn.close()
+    
+    if not result:
+        return False
+    
+    is_premium, expires_at = result
+    
+    if not is_premium:
+        return False
+    
+    if expires_at:
+        from datetime import datetime
+        expiry_date = datetime.fromisoformat(expires_at)
+        return datetime.now() < expiry_date
+    
+    return True
+
+def set_user_premium(phone_number, stripe_customer_id, expires_at):
+    """Active le statut premium pour un utilisateur"""
+    conn = sqlite3.connect(DATABASE)
+    
+    conn.execute('''
+        UPDATE users 
+        SET is_premium = 1, 
+            premium_expires_at = ?, 
+            stripe_customer_id = ?
+        WHERE phone_number = ?
+    ''', (expires_at, stripe_customer_id, phone_number))
+    
+    conn.commit()
+    conn.close()
+
+def get_user_message_count(phone_number):
+    """Récupère le nombre de messages d'un utilisateur"""
+    conn = sqlite3.connect(DATABASE)
+    
+    result = conn.execute(
+        'SELECT message_count FROM users WHERE phone_number = ?',
+        (phone_number,)
+    ).fetchone()
+    
+    conn.close()
+    
+    return result[0] if result else 0
+
+def set_test_message_count(phone_number, count):
+    """Définit le compteur de messages pour les tests (commandes /on30 et /off30)"""
+    conn = sqlite3.connect(DATABASE)
+    
+    # S'assurer que l'utilisateur existe
+    conn.execute('''
+        INSERT OR IGNORE INTO users (phone_number, onboarding_step, message_count)
+        VALUES (?, 'complete', 0)
+    ''', (phone_number,))
+    
+    # Mettre à jour le compteur
+    conn.execute('''
+        UPDATE users 
+        SET message_count = ?, last_interaction = CURRENT_TIMESTAMP
+        WHERE phone_number = ?
+    ''', (count, phone_number))
+    
+    conn.commit()
+    conn.close()
+    
+    return count
 
 def delete_user_data(phone_number):
     """Supprime complètement un utilisateur de la base de données"""
@@ -146,6 +248,10 @@ def get_user_data(phone_number):
         'target_carbs': user['target_carbs'],
         'onboarding_step': user['onboarding_step'],
         'onboarding_complete': user['onboarding_step'] == 'complete',
+        'message_count': user['message_count'] or 0,
+        'is_premium': bool(user['is_premium']),
+        'premium_expires_at': user['premium_expires_at'],
+        'stripe_customer_id': user['stripe_customer_id'],
         'daily_calories': daily['calories'] if daily else 0,
         'daily_proteins': daily['proteins'] if daily else 0,
         'daily_fats': daily['fats'] if daily else 0,
