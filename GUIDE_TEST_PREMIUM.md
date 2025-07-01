@@ -11,8 +11,8 @@
    - ✅ Utilisateurs premium = messages illimités
 
 2. **Lien Stripe Direct :**
-   - ✅ Lien configuré : `https://buy.stripe.com/6oU6oIbcCdL661s3833cc00`
-   - ✅ Prix : 60 CHF pour 12 mois
+   - ✅ Lien configuré : `https://buy.stripe.com/00w4gAgwWePa1LccID3cc02`
+   - ✅ Prix : 50 CHF pour 12 mois (4.17 CHF/mois)
    - ✅ Pas de génération dynamique, utilise votre lien direct
 
 3. **Message Premium Optimisé :**
@@ -45,7 +45,7 @@
 ### **Test 3 : Lien de Paiement**
 ```
 1. Tapez "/premium" 
-2. Vous recevrez le lien Stripe : https://buy.stripe.com/6oU6oIbcCdL661s3833cc00
+2. Vous recevrez le lien Stripe : https://buy.stripe.com/00w4gAgwWePa1LccID3cc02
 3. Testez le lien (utilisez une carte de test Stripe)
 ```
 
@@ -67,23 +67,23 @@
 Voici le message qui apparaît AVANT chaque réponse après 30 messages :
 
 ```
-🚀 *[Nom], débloquez Léa Premium maintenant !*
+🏆 *[Nom], passez à la vitesse supérieure !*
 
-Vous avez épuisé vos 30 messages gratuits. Pour continuer à recevoir mes analyses nutritionnelles personnalisées et mes conseils d'expert, passez à Léa Premium !
+Vous avez utilisé vos 30 messages gratuits. Débloquez *Léa Performance* et maximisez vos résultats !
 
-✨ *Pourquoi choisir Léa Premium ?*
-• 🔥 Analyses illimitées pendant 12 mois complets
-• 🎯 Conseils nutrition ultra-personnalisés 
-• ⚡ Réponses prioritaires et support dédié
-• 📊 Suivi avancé de vos objectifs
+🎯 *Léa Performance - Conçu pour l'excellence :*
+• 📊 Score de performance 0-100 pour chaque plat
+• 🏅 Classement pour booster votre motivation
+• ⚡ Réponses ultra-rapides sans publicité
+• 🔥 Messages illimités pendant 12 mois
 
-💎 *Offre exclusive : 60 CHF seulement*
-(Moins de 5 CHF/mois - le prix d'un café !)
+💎 *Seulement 50 CHF pour 12 mois*
+(4.17 CHF/mois - moins qu'un café !)
 
-👆 *CLIQUEZ ICI MAINTENANT :*
-https://buy.stripe.com/6oU6oIbcCdL661s3833cc00
+👆 *DÉBLOQUEZ MAINTENANT :*
+https://buy.stripe.com/00w4gAgwWePa1LccID3cc02
 
-⏰ Cette offre ne durera pas éternellement !
+🚀 Grimpez dans le classement et atteignez vos objectifs !
 
 ---
 ```

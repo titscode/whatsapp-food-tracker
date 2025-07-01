@@ -25,7 +25,10 @@ def analyze_food_request(text_content, media_url, debug_callback=None):
         else:
             return None
     except Exception as e:
-        print(f"❌ Erreur analyze_food_request: {e}")
+        # Utiliser logging au lieu de print
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"❌ Erreur analyze_food_request: {e}")
         if debug_callback:
             debug_callback(f"❌ DEBUG: Erreur analyze_food_request: {str(e)}")
         return None
@@ -58,13 +61,14 @@ def clean_json_content(content):
 
 def parse_food_text_with_gpt(text, debug_callback=None):
     """Utilise GPT pour parser intelligemment le texte alimentaire - VERSION AMÉLIORÉE"""
-    print(f"🔍 DEBUG GPT: Début parsing pour '{text}'")
-    # Debug callback silencieux en production
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"🔍 DEBUG GPT: Début parsing pour '{text}'")
     
     try:
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
-            print("❌ DEBUG GPT: Clé API manquante")
+            logger.error("❌ DEBUG GPT: Clé API manquante")
             if debug_callback:
                 debug_callback("❌ DEBUG GPT: Clé API manquante")
             return None
@@ -117,28 +121,24 @@ IMPORTANT :
             "temperature": 0.1
         }
         
-        print(f"🌐 DEBUG GPT: Envoi requête à OpenAI...")
-        # Debug callback silencieux en production
+        logger.debug(f"🌐 DEBUG GPT: Envoi requête à OpenAI...")
         
         response = requests.post("https://api.openai.com/v1/chat/completions", 
                                headers=headers, json=payload, timeout=15)
         
-        print(f"📡 DEBUG GPT: Status code: {response.status_code}")
-        # Debug callback silencieux en production
+        logger.debug(f"📡 DEBUG GPT: Status code: {response.status_code}")
         
         if response.status_code == 200:
             content = response.json()['choices'][0]['message']['content'].strip()
-            print(f"📝 DEBUG GPT: Réponse brute: '{content}'")
-            # Debug callback silencieux en production
+            logger.debug(f"📝 DEBUG GPT: Réponse brute: '{content}'")
             
             # Nettoyer le contenu
             cleaned_content = clean_json_content(content)
-            print(f"🧹 DEBUG GPT: Contenu nettoyé: '{cleaned_content}'")
+            logger.debug(f"🧹 DEBUG GPT: Contenu nettoyé: '{cleaned_content}'")
             
             try:
                 parsed_json = json.loads(cleaned_content)
-                print(f"✅ DEBUG GPT: JSON parsé avec succès: {parsed_json}")
-                # Debug callback silencieux en production
+                logger.debug(f"✅ DEBUG GPT: JSON parsé avec succès: {parsed_json}")
                 
                 # Normaliser la structure pour toujours avoir "aliments"
                 if 'aliment' in parsed_json and 'aliments' not in parsed_json:
@@ -155,30 +155,29 @@ IMPORTANT :
                 return parsed_json
                 
             except json.JSONDecodeError as e:
-                print(f"❌ DEBUG GPT: Erreur JSON: {e}")
-                print(f"❌ DEBUG GPT: Position erreur: {e.pos if hasattr(e, 'pos') else 'N/A'}")
-                print(f"❌ DEBUG GPT: Contenu problématique: {cleaned_content}")
-                # Debug callback silencieux en production
+                logger.error(f"❌ DEBUG GPT: Erreur JSON: {e}")
+                logger.error(f"❌ DEBUG GPT: Position erreur: {e.pos if hasattr(e, 'pos') else 'N/A'}")
+                logger.error(f"❌ DEBUG GPT: Contenu problématique: {cleaned_content}")
                 
                 # Tentative de récupération avec regex
                 return fallback_json_extraction(cleaned_content, text)
                 
         else:
             error_msg = response.text[:200] if response.text else "Pas de détails"
-            print(f"❌ DEBUG GPT: Erreur HTTP {response.status_code}: {error_msg}")
-            # Debug callback silencieux en production
+            logger.error(f"❌ DEBUG GPT: Erreur HTTP {response.status_code}: {error_msg}")
             return None
         
     except Exception as e:
-        print(f"❌ DEBUG GPT: Exception: {e}")
+        logger.error(f"❌ DEBUG GPT: Exception: {e}")
         import traceback
-        print(f"❌ DEBUG GPT: Traceback: {traceback.format_exc()}")
-        # Debug callback silencieux en production
+        logger.error(f"❌ DEBUG GPT: Traceback: {traceback.format_exc()}")
         return None
 
 def fallback_json_extraction(content, original_text):
     """Extraction de secours si le JSON parsing échoue"""
-    print("🔄 Tentative d'extraction fallback...")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug("🔄 Tentative d'extraction fallback...")
     
     try:
         # Chercher des patterns d'aliments avec regex
@@ -217,12 +216,14 @@ def fallback_json_extraction(content, original_text):
         return basic_text_parsing(original_text)
         
     except Exception as e:
-        print(f"❌ Fallback extraction failed: {e}")
+        logger.error(f"❌ Fallback extraction failed: {e}")
         return None
 
 def basic_text_parsing(text):
     """Parsing basique du texte comme dernier recours"""
-    print("🔄 Parsing basique du texte...")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug("🔄 Parsing basique du texte...")
     
     # Séparer par "et", "avec", ","
     parts = re.split(r'\s+(?:et|avec|,)\s+', text.lower())
@@ -270,17 +271,19 @@ def basic_text_parsing(text):
 
 def analyze_text_improved(text, debug_callback=None):
     """Analyse améliorée du texte avec GPT pour comprendre les quantités"""
-    print(f"🔍 Analyse texte améliorée: {text}")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"🔍 Analyse texte améliorée: {text}")
     
     # Essayer d'abord avec GPT
     parsed_data = parse_food_text_with_gpt(text, debug_callback)
     
     if parsed_data and 'aliments' in parsed_data:
-        print(f"📊 GPT a parsé {len(parsed_data['aliments'])} aliment(s)")
+        logger.debug(f"📊 GPT a parsé {len(parsed_data['aliments'])} aliment(s)")
         return process_multiple_foods(parsed_data['aliments'], text)
     
     # Fallback vers l'ancienne méthode
-    print("⚠️ GPT parsing failed, using fallback method")
+    logger.warning("⚠️ GPT parsing failed, using fallback method")
     if debug_callback:
         debug_callback("⚠️ Utilisation de la méthode fallback")
     return analyze_text_fallback(text)
