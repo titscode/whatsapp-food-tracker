@@ -107,6 +107,13 @@ def handle_special_commands(text_content, from_number, user_data):
         restart_onboarding(from_number)
         return True
     
+    if text_lower == '/tim':
+        # Commande spéciale pour configurer automatiquement le profil de Tim
+        from simple_onboarding import handle_simple_onboarding
+        response = handle_simple_onboarding(from_number, '/tim', user_data)
+        send_whatsapp_reply(from_number, response, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        return True
+    
     if text_lower in ['/premium', '/upgrade']:
         user_name = user_data.get('name', 'Utilisateur')
         premium_message = get_premium_message(from_number, user_name)
@@ -214,7 +221,7 @@ def handle_conversation(text_content, from_number, user_data):
     return False
 
 def handle_food_tracking(text_content, media_url, from_number):
-    """Gère le tracking d'aliments avec messages améliorés"""
+    """Gère le tracking d'aliments avec message fusionné"""
     food_data = analyze_food_request(text_content, media_url, lambda msg: logger.debug(msg))
     
     if food_data:
@@ -224,16 +231,9 @@ def handle_food_tracking(text_content, media_url, from_number):
         # Envoyer le rappel premium AVANT la réponse si nécessaire
         send_premium_reminder_if_needed(from_number, user_data)
         
-        # Message 1 : Analyse de l'aliment avec personnalité de Léa
-        message1 = format_food_analysis_message(food_data, user_data)
-        send_whatsapp_reply(from_number, message1, twilio_client, current_config.TWILIO_PHONE_NUMBER)
-        
-        # Délai de 1.5 secondes pour simuler une conversation naturelle
-        time.sleep(1.5)
-        
-        # Message 2 : Bilan du jour avec question engageante
-        message2 = format_daily_progress_message(user_data)
-        send_whatsapp_reply(from_number, message2, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+        # Message fusionné : Analyse + Bilan du jour
+        unified_message = format_unified_food_message(food_data, user_data)
+        send_whatsapp_reply(from_number, unified_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
     else:
         # Envoyer le rappel premium AVANT la réponse d'erreur si nécessaire
         user_data = get_user_data(from_number)
@@ -573,6 +573,74 @@ def get_engaging_question(user_data):
     # Sélectionner une question aléatoirement
     import random
     return random.choice(questions)
+
+# ===== MESSAGE FUSIONNÉ POUR L'ANALYSE ALIMENTAIRE =====
+def format_unified_food_message(food_data, user_data):
+    """Message fusionné : Analyse + Bilan du jour selon les spécifications exactes"""
+    food_name = food_data['name']
+    calories = food_data['calories']
+    
+    # Début du message avec nom + calories
+    parts = [f"{food_name}. 🥗 +{calories:.0f} kcal"]
+    
+    # Analyse du plat
+    parts.append("\nAnalyse de ton plat :")
+    parts.append("")
+    
+    # Ingrédients détectés si disponibles
+    if food_data.get('ingredients'):
+        for ing in food_data['ingredients'][:3]:  # Limiter à 3 ingrédients principaux
+            parts.append(f"• {ing['name']} ({ing['grams']}g) : {ing['calories']:.0f} kcal")
+    
+    # Conseil de Léa
+    expert_advice = get_expert_nutrition_advice(food_name, calories, food_data['proteines'], food_data['lipides'], food_data['glucides'], user_data)
+    parts.append(f"\n💡 Le conseil de Léa : {expert_advice}")
+    
+    # Bilan du jour
+    target_calories = user_data.get('target_calories', 0)
+    daily_calories = user_data.get('daily_calories', 0)
+    daily_proteins = user_data.get('daily_proteins', 0)
+    daily_fats = user_data.get('daily_fats', 0)
+    daily_carbs = user_data.get('daily_carbs', 0)
+    
+    if target_calories > 0:
+        target_proteins = user_data.get('target_proteins', 0)
+        target_fats = user_data.get('target_fats', 0)
+        target_carbs = user_data.get('target_carbs', 0)
+        
+        parts.extend([
+            f"\n📊 Ton bilan du jour :",
+            f"🔥 Calories : {daily_calories:.0f} / {target_calories}",
+            f"💪 Protéines : {daily_proteins:.1f} / {target_proteins}g",
+            f"🥑 Lipides : {daily_fats:.1f} / {target_fats}g",
+            f"🍞 Glucides : {daily_carbs:.1f} / {target_carbs}g"
+        ])
+        
+        # Message personnalisé selon l'objectif
+        goal = user_data.get('goal', user_data.get('objective', ''))
+        remaining_calories = target_calories - daily_calories
+        remaining_proteins = target_proteins - daily_proteins
+        
+        if goal == 'Prendre du muscle':
+            if remaining_calories > 500:
+                parts.append(f"\nEncore {remaining_calories:.0f} kcal et {remaining_proteins:.0f}g de prot pour atteindre ton objectif ✨")
+            else:
+                parts.append(f"\nEncore {remaining_calories:.0f} kcal et {remaining_proteins:.0f}g de prot pour atteindre ton objectif ✨")
+        
+        elif goal == 'Perdre du poids':
+            if remaining_calories > 500:
+                parts.append(f"Super ! Tu as encore une belle marge de {remaining_calories:.0f} kcal pour finir ta journée en respectant ton objectif. 💪")
+            else:
+                parts.append(f"Super ! Tu as encore une marge de {remaining_calories:.0f} kcal pour finir ta journée. + Bravo, tu gères parfaitement tes apports ! 🎯")
+        
+        elif goal == 'Maintenir ma forme':
+            # Encouragement personnalisé pour maintien
+            if remaining_calories > 300:
+                parts.append("Parfait équilibre ! Continue comme ça pour maintenir ta forme. 💪")
+            else:
+                parts.append("Excellent ! Tu maintiens parfaitement tes apports. 🎯")
+    
+    return "\n".join(parts)
 
 # ===== GESTION SMS ENTRANTS =====
 def init_sms_database():
@@ -927,9 +995,13 @@ def whatsapp_webhook():
     try:
         # Récupérer/créer utilisateur
         user_data = get_user_data(from_number)
+        is_new_user = False
+        
         if not user_data:
+            # Nouvel utilisateur - créer avec onboarding non terminé
             user_data = {
-                'onboarding_complete': True,
+                'onboarding_complete': False,
+                'onboarding_step': 'start',
                 'daily_calories': 0,
                 'daily_proteins': 0,
                 'daily_fats': 0,
@@ -937,6 +1009,14 @@ def whatsapp_webhook():
                 'meals': []
             }
             update_user_data(from_number, user_data)
+            is_new_user = True
+        
+        # Si c'est un nouvel utilisateur ou si le message contient "join live-cold", démarrer l'onboarding
+        if is_new_user or (text_content and 'join live-cold' in text_content.lower()):
+            from simple_onboarding import handle_simple_onboarding
+            onboarding_message = handle_simple_onboarding(from_number, 'start', user_data)
+            send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+            return '<Response/>', 200
         
         # Traitement par priorité
         if handle_onboarding(from_number, text_content, user_data):

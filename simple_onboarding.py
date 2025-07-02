@@ -1,8 +1,46 @@
 def handle_simple_onboarding(phone_number, message, user_data):
-    """Onboarding complet en 7 étapes pour calculer les objectifs nutritionnels précis"""
+    """Onboarding complet en 8 étapes pour calculer les objectifs nutritionnels précis"""
     from database import update_user_data
     
     step = user_data.get('onboarding_step', 'start')
+    
+    # Commande spéciale /tim pour remplir automatiquement le profil de Tim
+    if message.strip().lower() == '/tim':
+        user_data.update({
+            'name': 'Tim',
+            'goal': 'Prendre du muscle',
+            'objective': 'Prendre du muscle',
+            'age': 28,
+            'gender': 'H',
+            'sex': 'H',
+            'weight': 70,
+            'height': 175,  # Taille par défaut pour Tim
+            'activity_level': 1.725,  # D - 5-6 fois par semaine
+            'activity_text': '5-6 entraînements/semaine',
+            'onboarding_step': 'complete',
+            'onboarding_complete': True
+        })
+        
+        # Calcul des objectifs avec les vraies formules
+        age, weight, height, gender, goal, activity_level = 28, 70, 175, 'H', 'Prendre du muscle', 1.725
+        
+        # BMR avec la vraie taille
+        bmr = 10 * weight + 6.25 * height + 5 * age + 5  # Homme
+        tdee = bmr * activity_level
+        calories = int(tdee * 1.10)  # Surplus de 10% pour prise de muscle
+        proteins = int(weight * 2.2)  # 2.2g/kg pour prise de muscle
+        fats = int(calories * 0.25 / 9)  # 25% des calories en lipides
+        carbs = int((calories - proteins * 4 - fats * 9) / 4)  # Le reste en glucides
+        
+        user_data.update({
+            'target_calories': calories,
+            'target_proteins': proteins,
+            'target_fats': fats,
+            'target_carbs': carbs
+        })
+        
+        update_user_data(phone_number, user_data)
+        return f"🚀 *Profil Tim configuré automatiquement !*\n\n🎯 *Tes objectifs quotidiens :*\n🔥 Calories : {calories} kcal\n💪 Protéines : {proteins}g\n🥑 Lipides : {fats}g\n🍞 Glucides : {carbs}g\n\n📊 *Ton profil :*\n• 28 ans, 70kg, 175cm\n• 5-6 entraînements/semaine\n• Objectif : Prendre du muscle\n\nC'est parti ! 🔥\n\n📸 Envoie-moi une photo de ton plat ou écris ce que tu manges !"
     
     if step == 'start':
         # Étape 1 : Accueil
@@ -78,12 +116,38 @@ def handle_simple_onboarding(phone_number, message, user_data):
                 return "Ce poids me semble étrange... Tu peux vérifier ?"
             
             user_data['weight'] = weight
+            user_data['onboarding_step'] = 'height'
+            update_user_data(phone_number, user_data)
+            return "Super ! Maintenant, quelle est ta taille ?\n\nÉcris juste le nombre en cm (ex: 175)"
+            
+        except ValueError:
+            return "Je n'arrive pas à lire ton poids... Écris juste le nombre (ex: 70)"
+    
+    elif step == 'height':
+        # Étape 7 : Taille → Activité physique
+        try:
+            # Extraire le nombre (gérer "175cm", "175 cm", "175", "1m75")
+            import re
+            height_match = re.search(r'(\d+(?:\.\d+)?)', message.strip())
+            if not height_match:
+                return "Je n'arrive pas à lire ta taille... Écris juste le nombre en cm (ex: 175)"
+            
+            height = float(height_match.group(1))
+            
+            # Gérer les cas où l'utilisateur donne en mètres (ex: 1.75)
+            if height < 3:
+                height = height * 100  # Convertir en cm
+            
+            if height < 120 or height > 220:
+                return "Cette taille me semble étrange... Tu peux vérifier ? (en cm)"
+            
+            user_data['height'] = int(height)
             user_data['onboarding_step'] = 'activity'
             update_user_data(phone_number, user_data)
             return "Dernière question ! À quelle fréquence tu t'entraînes par semaine ? 💪\n\nA - Jamais (vie sédentaire)\nB - 1-2 fois par semaine\nC - 3-4 fois par semaine\nD - 5-6 fois par semaine\nE - 7+ fois par semaine\n\nRéponds A, B, C, D ou E"
             
         except ValueError:
-            return "Je n'arrive pas à lire ton poids... Écris juste le nombre (ex: 70)"
+            return "Je n'arrive pas à lire ta taille... Écris juste le nombre en cm (ex: 175)"
     
     elif step == 'activity':
         # Étape 7 : Activité → Calcul et finalisation
@@ -131,6 +195,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         try:
             age = user_data['age']
             weight = user_data['weight']
+            height = user_data.get('height', 175 if user_data['gender'] == 'H' else 165)  # Valeur par défaut si pas de taille
             gender = user_data['gender']
             goal = user_data['goal']
         except KeyError as e:
@@ -138,11 +203,11 @@ def handle_simple_onboarding(phone_number, message, user_data):
             print(f"❌ user_data: {user_data}")
             return f"❌ Erreur technique: {e}. Recommencez avec /first_try"
         
-        # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor CORRIGÉE
+        # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor avec vraie taille
         if gender == 'H':  # Homme
-            bmr = 10 * weight + 6.25 * 175 + 5 * age + 5  # Hauteur estimée 175cm
+            bmr = 10 * weight + 6.25 * height + 5 * age + 5
         else:  # Femme
-            bmr = 10 * weight + 6.25 * 165 + 5 * age - 161  # Hauteur estimée 165cm
+            bmr = 10 * weight + 6.25 * height + 5 * age - 161
         
         # TDEE (dépense énergétique totale)
         tdee = bmr * activity_level
