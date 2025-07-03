@@ -157,7 +157,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['sex'] = gender  # Mapping pour compatibilité
         user_data['onboarding_step'] = 'activity'
         update_user_data(phone_number, user_data)
-        return "Et niveau sport, tu te situes où ?\n\nA - Plutôt canapé 🛋️ (sédentaire)\nB - Tranquille, 1-2 fois / semaine\nC - Régulier, 3-4 fois / semaine\nD - À fond, 5-6 fois / semaine\nE - Machine ! 7 fois et + / semaine"
+        return "Et niveau sport, tu te situes où ?\nA - Plutôt canapé 🛋️ (sédentaire)\nB - Tranquille, 1-2 fois / semaine\nC - Régulier, 3-4 fois / semaine\nD - À fond, 5-6 fois / semaine\nE - Machine !  7j/7 et +"
     
     elif step == 'activity':
         # Étape 8 : Activité → Calcul et finalisation

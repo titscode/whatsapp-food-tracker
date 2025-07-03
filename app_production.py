@@ -592,10 +592,12 @@ def format_unified_food_message(food_data, user_data):
     
     if is_single_ingredient:
         # NOUVEAU FORMAT pour un seul ingrédient
-        # Afficher le nom avec le poids si disponible
+        # Afficher le nom avec le poids si disponible, en évitant la répétition
         if ingredients and len(ingredients) == 1:
             weight = ingredients[0].get('grams', 0)
-            parts.append(f"{food_name} ({weight}g)")
+            ingredient_name = ingredients[0].get('name', food_name)
+            # Utiliser le nom de l'ingrédient plutôt que le nom du plat pour éviter "100g de banane (100g)"
+            parts.append(f"{ingredient_name} ({weight}g)")
         else:
             parts.append(f"{food_name}")
         
