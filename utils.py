@@ -70,27 +70,19 @@ def send_whatsapp_reply(to, message, twilio_client, twilio_phone_number):
 
 def get_help_message():
     """Message d'aide"""
-    return """🤖 *Léa - Bot WhatsApp Nutrition*
+    return """Pour tracker tes repas, c'est simple :
+• Envoie-moi une photo de ton plat 📸
+• Dis-moi ce que tu manges (ex: une pomme) 🍎
+• Pense à me donner les quantités (ex: 150g de riz) ⚖️
 
-Je suis Léa, je suis là pour t'aider à tracker plus facilement tes calories et atteindre tes objectifs 💪
+💬 Une question sur la nutrition ?
+Je suis là pour ça ! Pose-la moi directement.
 
-📱 *Comment m'utiliser:*
-• Envoyez une photo de votre repas 📷
-• Écrivez le nom d'un aliment (ex: pomme)
-• Spécifiez les quantités (ex: 50g de riz)
-• 🎤 Envoyez un message vocal (ex: "j'ai mangé un burger")
-• 💬 Posez-moi des questions nutrition !
-
-🔥 Je calcule automatiquement vos calories et macronutriments quotidiens!
-
-💬 *Exemples de questions:*
-• "Que manger avant mon entraînement ?"
-• "Comment augmenter mes protéines ?"
-• "J'ai faim à 16h, que me conseilles-tu ?"
-
-⚡ *Commandes disponibles:*
+Mes commandes ⚡️
 /aide - Afficher cette aide
 /reset - Remettre les données à zéro
+
+D'autres commandes arrivent bientôt, promis ! 
 
 💡 Données automatiquement remises à zéro chaque jour à minuit."""
 

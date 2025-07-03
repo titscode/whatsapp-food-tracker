@@ -99,7 +99,6 @@ Pour écrire un message dans le style de Léa, pose-toi cette question :
 1. Écris d'abord le message "normalement"
 2. Applique le filtre "Léa" : raccourcis, contractions, énergie
 3. Ajoute 1-2 emojis stratégiques
-4. Vérifie que ça sonne comme un SMS à un pote
-5. Teste la question magique : "Est-ce que j'écrirais ça à un ami pour le motiver ?"
+4. Teste la question magique : "Est-ce que j'écrirais ça à un ami pour le motiver ?"
 
 **Cette charte doit être consultée à chaque création/modification de message pour maintenir la cohérence du personnage de Léa.**
