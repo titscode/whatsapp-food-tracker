@@ -1011,10 +1011,30 @@ def whatsapp_webhook():
             update_user_data(from_number, user_data)
             is_new_user = True
         
-        # Si c'est un nouvel utilisateur ou si le message contient "join live-cold", démarrer l'onboarding
-        if is_new_user or (text_content and 'join live-cold' in text_content.lower()):
+        # Si c'est un nouvel utilisateur, démarrer l'onboarding automatiquement
+        if is_new_user:
             from simple_onboarding import handle_simple_onboarding
             onboarding_message = handle_simple_onboarding(from_number, 'start', user_data)
+            send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+            return '<Response/>', 200
+        
+        # Si le message contient "join live-cold", redémarrer l'onboarding
+        if text_content and 'join live-cold' in text_content.lower():
+            # Redémarrer complètement l'onboarding
+            delete_user_data(from_number)
+            new_user_data = {
+                'onboarding_complete': False,
+                'onboarding_step': 'start',
+                'daily_calories': 0,
+                'daily_proteins': 0,
+                'daily_fats': 0,
+                'daily_carbs': 0,
+                'meals': []
+            }
+            update_user_data(from_number, new_user_data)
+            
+            from simple_onboarding import handle_simple_onboarding
+            onboarding_message = handle_simple_onboarding(from_number, 'start', new_user_data)
             send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
