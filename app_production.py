@@ -579,21 +579,32 @@ def format_unified_food_message(food_data, user_data):
     """Message fusionné : Analyse + Bilan du jour selon les spécifications exactes"""
     food_name = food_data['name']
     calories = food_data['calories']
+    proteins = food_data['proteines']
+    fats = food_data['lipides']
+    carbs = food_data['glucides']
     
-    # Début du message avec nom + calories
-    parts = [f"{food_name}. 🥗 +{calories:.0f} kcal"]
+    # Titre : "C'est noté ! ✅ +XXX kcal"
+    parts = [f"C'est noté ! ✅ +{calories:.0f} kcal"]
     
     # Analyse du plat
     parts.append("\nAnalyse de ton plat :")
-    parts.append("")
     
     # Ingrédients détectés si disponibles
     if food_data.get('ingredients'):
         for ing in food_data['ingredients'][:3]:  # Limiter à 3 ingrédients principaux
             parts.append(f"• {ing['name']} ({ing['grams']}g) : {ing['calories']:.0f} kcal")
     
+    # NOUVEAU : Détail du plat (valeurs nutritionnelles)
+    parts.extend([
+        f"\n📊 Détail du plat :",
+        f"🔥 Calories : {calories:.0f} kcal",
+        f"💪 Protéines : {proteins:.1f}g",
+        f"🥑 Lipides : {fats:.1f}g",
+        f"🍞 Glucides : {carbs:.1f}g"
+    ])
+    
     # Conseil de Léa
-    expert_advice = get_expert_nutrition_advice(food_name, calories, food_data['proteines'], food_data['lipides'], food_data['glucides'], user_data)
+    expert_advice = get_expert_nutrition_advice(food_name, calories, proteins, fats, carbs, user_data)
     parts.append(f"\n💡 Le conseil de Léa : {expert_advice}")
     
     # Bilan du jour
@@ -609,9 +620,10 @@ def format_unified_food_message(food_data, user_data):
         target_carbs = user_data.get('target_carbs', 0)
         
         parts.extend([
-            f"\n📊 Ton bilan du jour :",
+            f"\n📈 Ton bilan du jour :",
             f"🔥 Calories : {daily_calories:.0f} / {target_calories}",
             f"💪 Protéines : {daily_proteins:.1f} / {target_proteins}g",
+            "",
             f"🥑 Lipides : {daily_fats:.1f} / {target_fats}g",
             f"🍞 Glucides : {daily_carbs:.1f} / {target_carbs}g"
         ])
@@ -622,23 +634,20 @@ def format_unified_food_message(food_data, user_data):
         remaining_proteins = target_proteins - daily_proteins
         
         if goal == 'Prendre du muscle':
-            if remaining_calories > 500:
-                parts.append(f"\nEncore {remaining_calories:.0f} kcal et {remaining_proteins:.0f}g de prot pour atteindre ton objectif ✨")
-            else:
-                parts.append(f"\nEncore {remaining_calories:.0f} kcal et {remaining_proteins:.0f}g de prot pour atteindre ton objectif ✨")
+            parts.append(f"\nEncore {remaining_calories:.0f} kcal et {remaining_proteins:.1f}g de prot pour atteindre ton objectif ✨")
         
         elif goal == 'Perdre du poids':
             if remaining_calories > 500:
-                parts.append(f"Super ! Tu as encore une belle marge de {remaining_calories:.0f} kcal pour finir ta journée en respectant ton objectif. 💪")
+                parts.append(f"\nSuper ! Tu as encore une belle marge de {remaining_calories:.0f} kcal pour finir ta journée en respectant ton objectif. 💪")
             else:
-                parts.append(f"Super ! Tu as encore une marge de {remaining_calories:.0f} kcal pour finir ta journée. + Bravo, tu gères parfaitement tes apports ! 🎯")
+                parts.append(f"\nSuper ! Tu as encore une marge de {remaining_calories:.0f} kcal pour finir ta journée. + Bravo, tu gères parfaitement tes apports ! 🎯")
         
         elif goal == 'Maintenir ma forme':
             # Encouragement personnalisé pour maintien
             if remaining_calories > 300:
-                parts.append("Parfait équilibre ! Continue comme ça pour maintenir ta forme. 💪")
+                parts.append("\nParfait équilibre ! Continue comme ça pour maintenir ta forme. 💪")
             else:
-                parts.append("Excellent ! Tu maintiens parfaitement tes apports. 🎯")
+                parts.append("\nExcellent ! Tu maintiens parfaitement tes apports. 🎯")
     
     return "\n".join(parts)
 
@@ -1011,30 +1020,24 @@ def whatsapp_webhook():
             update_user_data(from_number, user_data)
             is_new_user = True
         
-        # Si c'est un nouvel utilisateur, démarrer l'onboarding automatiquement
-        if is_new_user:
-            from simple_onboarding import handle_simple_onboarding
-            onboarding_message = handle_simple_onboarding(from_number, 'start', user_data)
-            send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
-            return '<Response/>', 200
-        
-        # Si le message contient "join live-cold", redémarrer l'onboarding
-        if text_content and 'join live-cold' in text_content.lower():
-            # Redémarrer complètement l'onboarding
-            delete_user_data(from_number)
-            new_user_data = {
-                'onboarding_complete': False,
-                'onboarding_step': 'start',
-                'daily_calories': 0,
-                'daily_proteins': 0,
-                'daily_fats': 0,
-                'daily_carbs': 0,
-                'meals': []
-            }
-            update_user_data(from_number, new_user_data)
+        # Si c'est un nouvel utilisateur OU si le message contient "join live-cold", démarrer l'onboarding
+        if is_new_user or (text_content and 'join live-cold' in text_content.lower()):
+            if not is_new_user:
+                # Si c'est "join live-cold", redémarrer complètement l'onboarding
+                delete_user_data(from_number)
+                user_data = {
+                    'onboarding_complete': False,
+                    'onboarding_step': 'start',
+                    'daily_calories': 0,
+                    'daily_proteins': 0,
+                    'daily_fats': 0,
+                    'daily_carbs': 0,
+                    'meals': []
+                }
+                update_user_data(from_number, user_data)
             
             from simple_onboarding import handle_simple_onboarding
-            onboarding_message = handle_simple_onboarding(from_number, 'start', new_user_data)
+            onboarding_message = handle_simple_onboarding(from_number, 'start', user_data)
             send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
             return '<Response/>', 200
         
