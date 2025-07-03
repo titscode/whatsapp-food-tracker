@@ -1,5 +1,5 @@
 def handle_simple_onboarding(phone_number, message, user_data):
-    """Onboarding complet en 8 étapes pour calculer les objectifs nutritionnels précis"""
+    """Onboarding conversationnel et naturel selon les spécifications exactes"""
     from database import update_user_data
     
     step = user_data.get('onboarding_step', 'start')
@@ -14,7 +14,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
             'gender': 'H',
             'sex': 'H',
             'weight': 70,
-            'height': 175,  # Taille par défaut pour Tim
+            'height': 175,
             'activity_level': 1.725,  # D - 5-6 fois par semaine
             'activity_text': '5-6 entraînements/semaine',
             'onboarding_step': 'complete',
@@ -43,67 +43,35 @@ def handle_simple_onboarding(phone_number, message, user_data):
         return f"🚀 *Profil Tim configuré automatiquement !*\n\n🎯 *Tes objectifs quotidiens :*\n🔥 Calories : {calories} kcal\n💪 Protéines : {proteins}g\n🥑 Lipides : {fats}g\n🍞 Glucides : {carbs}g\n\n📊 *Ton profil :*\n• 28 ans, 70kg, 175cm\n• 5-6 entraînements/semaine\n• Objectif : Prendre du muscle\n\nC'est parti ! 🔥\n\n📸 Envoie-moi une photo de ton plat ou écris ce que tu manges !"
     
     if step == 'start':
-        # Étape 1 : Accueil
+        # Étape 1 : Intro
         user_data['onboarding_step'] = 'name'
         update_user_data(phone_number, user_data)
-        return "Salut ! Moi c'est Léa 👋\n\nJe vais t'aider à tracker tes aliments et atteindre tes objectifs !\n\nComment tu t'appelles ?"
+        return "Salut ! Moi c'est Léa 👋 Tu t'appelles comment ?"
     
     elif step == 'name':
-        # Étape 2 : Nom → Objectif
+        # Étape 2 : Confirmation & Age
         user_data['name'] = message.strip()
-        user_data['onboarding_step'] = 'goal'
-        update_user_data(phone_number, user_data)
-        return f"Enchanté {user_data['name']} ! 😊\n\nQuel est ton objectif principal ?\n\nA - Perdre du poids\nB - Prendre du muscle\nC - Maintenir ma forme\n\nRéponds simplement A, B ou C"
-    
-    elif step == 'goal':
-        # Étape 3 : Objectif → Âge
-        message_clean = message.strip().upper()
-        if message_clean == 'A':
-            goal = 'Perdre du poids'
-        elif message_clean == 'B':
-            goal = 'Prendre du muscle'
-        elif message_clean == 'C':
-            goal = 'Maintenir ma forme'
-        else:
-            return "Réponds A, B ou C selon ton objectif ! 😊"
-        
-        user_data['goal'] = goal
         user_data['onboarding_step'] = 'age'
         update_user_data(phone_number, user_data)
-        return f"Super choix ! Objectif : {goal} 🎯\n\nPour personnaliser tes conseils, quel âge as-tu ?"
+        return f"Enchanté, {user_data['name']} ! ✌️ T'as quel age ?"
     
     elif step == 'age':
-        # Étape 4 : Âge → Sexe
+        # Étape 3 : Age → Poids
         try:
             age = int(message.strip())
             if age < 10 or age > 100:
                 return "Cet âge me semble étrange... Peux-tu me redonner ton âge ?"
             
             user_data['age'] = age
-            user_data['onboarding_step'] = 'gender'
+            user_data['onboarding_step'] = 'weight'
             update_user_data(phone_number, user_data)
-            return "Parfait ! Es-tu un homme ou une femme ?\n\nH - Homme\nF - Femme\n\nRéponds H ou F"
+            return "Tu pèses combien ? (Dis-moi juste le nombre en kg 😉)"
             
         except ValueError:
             return "Je n'ai pas compris... Peux-tu me donner ton âge en chiffres ?"
     
-    elif step == 'gender':
-        # Étape 5 : Sexe → Poids
-        message_clean = message.strip().upper()
-        if message_clean in ['H', 'HOMME']:
-            gender = 'H'
-        elif message_clean in ['F', 'FEMME']:
-            gender = 'F'
-        else:
-            return "Réponds H (homme) ou F (femme) ! 😊"
-        
-        user_data['gender'] = gender
-        user_data['onboarding_step'] = 'weight'
-        update_user_data(phone_number, user_data)
-        return "Merci ! Maintenant, quel est ton poids actuel ?\n\nÉcris juste le nombre en kg (ex: 70)"
-    
     elif step == 'weight':
-        # Étape 6 : Poids → Activité physique
+        # Étape 4 : Poids → Objectif
         try:
             # Extraire le nombre (gérer "70kg", "70 kg", "70")
             import re
@@ -116,15 +84,33 @@ def handle_simple_onboarding(phone_number, message, user_data):
                 return "Ce poids me semble étrange... Tu peux vérifier ?"
             
             user_data['weight'] = weight
-            user_data['onboarding_step'] = 'height'
+            user_data['onboarding_step'] = 'goal'
             update_user_data(phone_number, user_data)
-            return "Super ! Maintenant, quelle est ta taille ?\n\nÉcris juste le nombre en cm (ex: 175)"
+            return "Et ça serait quoi ton objectif ?\n\n1 - Perdre du poids 📉\n2 - Prendre du muscle 💪\n3 - Garder la forme ⚡️"
             
         except ValueError:
             return "Je n'arrive pas à lire ton poids... Écris juste le nombre (ex: 70)"
     
+    elif step == 'goal':
+        # Étape 5 : Objectif → Taille
+        message_clean = message.strip()
+        if message_clean in ['1', 'perdre du poids', 'perdre', 'maigrir']:
+            goal = 'Perdre du poids'
+        elif message_clean in ['2', 'prendre du muscle', 'muscle', 'musculation']:
+            goal = 'Prendre du muscle'
+        elif message_clean in ['3', 'garder la forme', 'maintenir', 'forme']:
+            goal = 'Maintenir ma forme'
+        else:
+            return "Réponds 1, 2 ou 3 selon ton objectif ! 😊"
+        
+        user_data['goal'] = goal
+        user_data['objective'] = goal  # Mapping pour compatibilité
+        user_data['onboarding_step'] = 'height'
+        update_user_data(phone_number, user_data)
+        return "Nickel ! Tu mesures combien ? (En cm, stp)"
+    
     elif step == 'height':
-        # Étape 7 : Taille → Activité physique
+        # Étape 6 : Taille → Genre
         try:
             # Extraire le nombre (gérer "175cm", "175 cm", "175", "1m75")
             import re
@@ -142,102 +128,110 @@ def handle_simple_onboarding(phone_number, message, user_data):
                 return "Cette taille me semble étrange... Tu peux vérifier ? (en cm)"
             
             user_data['height'] = int(height)
-            user_data['onboarding_step'] = 'activity'
+            user_data['onboarding_step'] = 'gender'
             update_user_data(phone_number, user_data)
-            return "Dernière question ! À quelle fréquence tu t'entraînes par semaine ? 💪\n\nA - Jamais (vie sédentaire)\nB - 1-2 fois par semaine\nC - 3-4 fois par semaine\nD - 5-6 fois par semaine\nE - 7+ fois par semaine\n\nRéponds A, B, C, D ou E"
+            return "Ok. Et t'es un homme ou une femme ?\n\n👨 Homme (H)\n👩 Femme (F)\n🦄 Ne souhaite pas répondre (N)"
             
         except ValueError:
             return "Je n'arrive pas à lire ta taille... Écris juste le nombre en cm (ex: 175)"
     
+    elif step == 'gender':
+        # Étape 7 : Genre → Activité
+        message_clean = message.strip().upper()
+        if message_clean in ['H', 'HOMME']:
+            gender = 'H'
+        elif message_clean in ['F', 'FEMME']:
+            gender = 'F'
+        elif message_clean in ['N', 'NE SOUHAITE PAS']:
+            gender = 'N'  # Valeur intermédiaire pour les calculs
+        else:
+            return "Réponds H, F ou N ! 😊"
+        
+        user_data['gender'] = gender
+        user_data['sex'] = gender  # Mapping pour compatibilité
+        user_data['onboarding_step'] = 'activity'
+        update_user_data(phone_number, user_data)
+        return "Et niveau sport, tu te situes où ?\n\nA - Plutôt canapé 🛋️ (sédentaire)\nB - Tranquille, 1-2 fois / semaine\nC - Régulier, 3-4 fois / semaine\nD - À fond, 5-6 fois / semaine\nE - Machine ! 7 fois et + / semaine 🤖"
+    
     elif step == 'activity':
-        # Étape 7 : Activité → Calcul et finalisation
+        # Étape 8 : Activité → Calcul et finalisation
         message_clean = message.strip().upper()
         if message_clean == 'A':
-            activity_level = 1.2  # Sédentaire
-            activity_text = "Sédentaire"
+            activity_level = 1.2
+            activity_text = "sédentaire"
         elif message_clean == 'B':
-            activity_level = 1.375  # Légèrement actif
-            activity_text = "1-2 entraînements/semaine"
+            activity_level = 1.375
+            activity_text = "1-2 fois/semaine"
         elif message_clean == 'C':
-            activity_level = 1.55  # Modérément actif
-            activity_text = "3-4 entraînements/semaine"
+            activity_level = 1.55
+            activity_text = "3-4 fois/semaine"
         elif message_clean == 'D':
-            activity_level = 1.725  # Très actif
-            activity_text = "5-6 entraînements/semaine"
+            activity_level = 1.725
+            activity_text = "5-6 fois/semaine"
         elif message_clean == 'E':
-            activity_level = 1.9  # Extrêmement actif
-            activity_text = "7+ entraînements/semaine"
+            activity_level = 1.9
+            activity_text = "7+ fois/semaine"
         else:
             return "Réponds A, B, C, D ou E selon ton niveau d'activité ! 😊"
         
         user_data['activity_level'] = activity_level
         user_data['activity_text'] = activity_text
+        user_data['onboarding_step'] = 'confirmation'
+        update_user_data(phone_number, user_data)
         
-        # VALIDATION : Vérifier que tous les champs requis sont présents
-        required_fields = ['age', 'weight', 'gender', 'goal']
-        missing_fields = [field for field in required_fields if field not in user_data or user_data[field] is None]
+        # Calcul des objectifs
+        age = user_data['age']
+        weight = user_data['weight']
+        height = user_data['height']
+        gender = user_data['gender']
+        goal = user_data['goal']
         
-        if missing_fields:
-            print(f"❌ ERREUR VALIDATION: Champs manquants: {missing_fields}")
-            print(f"❌ user_data disponible: {list(user_data.keys())}")
-            # Essayer de récupérer depuis les champs alternatifs
-            if 'gender' not in user_data and 'sex' in user_data:
-                user_data['gender'] = user_data['sex']
-            if 'goal' not in user_data and 'objective' in user_data:
-                user_data['goal'] = user_data['objective']
-            
-            # Vérifier à nouveau
-            missing_fields = [field for field in required_fields if field not in user_data or user_data[field] is None]
-            if missing_fields:
-                return f"❌ Erreur: Données manquantes ({', '.join(missing_fields)}). Recommencez avec /first_try"
-        
-        # Calcul précis des objectifs avec formules standards
-        try:
-            age = user_data['age']
-            weight = user_data['weight']
-            height = user_data.get('height', 175 if user_data['gender'] == 'H' else 165)  # Valeur par défaut si pas de taille
-            gender = user_data['gender']
-            goal = user_data['goal']
-        except KeyError as e:
-            print(f"❌ ERREUR ACCÈS DONNÉES: {e}")
-            print(f"❌ user_data: {user_data}")
-            return f"❌ Erreur technique: {e}. Recommencez avec /first_try"
-        
-        # Calcul BMR (métabolisme de base) - Formule Mifflin-St Jeor avec vraie taille
-        if gender == 'H':  # Homme
+        # Calcul BMR avec gestion du genre "N" (valeur intermédiaire)
+        if gender == 'H':
             bmr = 10 * weight + 6.25 * height + 5 * age + 5
-        else:  # Femme
+        elif gender == 'F':
             bmr = 10 * weight + 6.25 * height + 5 * age - 161
+        else:  # Genre "N" - valeur intermédiaire
+            bmr_h = 10 * weight + 6.25 * height + 5 * age + 5
+            bmr_f = 10 * weight + 6.25 * height + 5 * age - 161
+            bmr = (bmr_h + bmr_f) / 2  # Moyenne entre homme et femme
         
-        # TDEE (dépense énergétique totale)
+        # TDEE
         tdee = bmr * activity_level
         
-        # Ajustement selon l'objectif - FORMULE CORRIGÉE
+        # Ajustement selon l'objectif
         if goal == 'Perdre du poids':
-            calories = int(tdee * 0.85)  # Déficit de 15%
-            proteins_per_kg = 2.0  # Plus de protéines pour préserver la masse musculaire
+            calories = int(tdee * 0.85)
+            proteins_per_kg = 2.0
         elif goal == 'Prendre du muscle':
-            calories = int(tdee * 1.10)  # Surplus de 10% (au lieu de +200 fixe)
-            proteins_per_kg = 2.2  # Protéines pour la croissance
+            calories = int(tdee * 1.10)
+            proteins_per_kg = 2.2
         else:  # Maintenir
-            calories = int(tdee)  # Maintenance
-            proteins_per_kg = 1.8  # Protéines standard
+            calories = int(tdee)
+            proteins_per_kg = 1.8
         
         # Calcul des macronutriments
         proteins = int(weight * proteins_per_kg)
-        fats = int(calories * 0.25 / 9)  # 25% des calories en lipides
-        carbs = int((calories - proteins * 4 - fats * 9) / 4)  # Le reste en glucides
+        fats = int(calories * 0.25 / 9)
+        carbs = int((calories - proteins * 4 - fats * 9) / 4)
         
         # Sauvegarder les objectifs
         user_data['target_calories'] = calories
         user_data['target_proteins'] = proteins
         user_data['target_fats'] = fats
         user_data['target_carbs'] = carbs
+        update_user_data(phone_number, user_data)
+        
+        # Message de confirmation selon le format exact demandé
+        gender_text = "homme" if gender == 'H' else "femme" if gender == 'F' else "personne"
+        return f"Voilà {user_data['name']}, tout est prêt ! 🚀\n\n🎯 Voici tes objectifs quotidiens :\n🔥 Calories : {calories} kcal\n💪 Protéines : {proteins}g\n🥑 Lipides : {fats}g\n🍞 Glucides : {carbs}g\n\nC'est calculé pour un {gender_text} de {age} ans qui s'entraîne {activity_text} pour {goal.lower()}. On est bon ?"
+    
+    elif step == 'confirmation':
+        # Étape finale : Appel à l'action
         user_data['onboarding_step'] = 'complete'
         user_data['onboarding_complete'] = True
         update_user_data(phone_number, user_data)
-        
-        return f"Parfait {user_data['name']} ! 🎉\n\n🎯 *Tes objectifs quotidiens personnalisés :*\n🔥 Calories : {calories} kcal\n💪 Protéines : {proteins}g\n🥑 Lipides : {fats}g\n🍞 Glucides : {carbs}g\n\n📊 *Ton profil :*\n• {age} ans, {activity_text}\n• Objectif : {goal}\n\nMaintenant je peux t'accompagner ! 🚀\n\n📸 Envoie-moi une photo de ton plat\n📝 Ou écris ce que tu manges (ex: \"100g de riz\")\n💬 Pose-moi des questions nutrition\n\nTape /aide pour découvrir toutes mes fonctions !"
+        return "Alors, on commence ? Envoie-moi la photo de ton repas, ou dis-moi simplement ce que tu as mangé ce matin. C'est parti ! 💪\n\n(PS : à tout moment, tape /aide pour voir tout ce que je peux faire)"
     
     # Si on arrive ici, erreur
     user_data['onboarding_complete'] = True
