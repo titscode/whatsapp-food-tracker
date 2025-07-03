@@ -58,7 +58,13 @@ def handle_simple_onboarding(phone_number, message, user_data):
     elif step == 'age':
         # Étape 3 : Age → Poids
         try:
-            age = int(message.strip())
+            # Extraire le nombre (gérer "28 ans", "28", etc.)
+            import re
+            age_match = re.search(r'(\d+)', message.strip())
+            if not age_match:
+                return "Je n'ai pas compris... Peux-tu me donner ton âge en chiffres ?"
+            
+            age = int(age_match.group(1))
             if age < 10 or age > 100:
                 return "Cet âge me semble étrange... Peux-tu me redonner ton âge ?"
             
@@ -107,7 +113,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['objective'] = goal  # Mapping pour compatibilité
         user_data['onboarding_step'] = 'height'
         update_user_data(phone_number, user_data)
-        return "Nickel ! Tu mesures combien ? (En cm, stp)"
+        return "Let's go ! Tu mesures combien ? (En cm, stp)"
     
     elif step == 'height':
         # Étape 6 : Taille → Genre
@@ -151,7 +157,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['sex'] = gender  # Mapping pour compatibilité
         user_data['onboarding_step'] = 'activity'
         update_user_data(phone_number, user_data)
-        return "Et niveau sport, tu te situes où ?\n\nA - Plutôt canapé 🛋️ (sédentaire)\nB - Tranquille, 1-2 fois / semaine\nC - Régulier, 3-4 fois / semaine\nD - À fond, 5-6 fois / semaine\nE - Machine ! 7 fois et + / semaine 🤖"
+        return "Et niveau sport, tu te situes où ?\n\nA - Plutôt canapé 🛋️ (sédentaire)\nB - Tranquille, 1-2 fois / semaine\nC - Régulier, 3-4 fois / semaine\nD - À fond, 5-6 fois / semaine\nE - Machine ! 7 fois et + / semaine"
     
     elif step == 'activity':
         # Étape 8 : Activité → Calcul et finalisation
@@ -231,7 +237,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['onboarding_step'] = 'complete'
         user_data['onboarding_complete'] = True
         update_user_data(phone_number, user_data)
-        return "Alors, on commence ? Envoie-moi la photo de ton repas, ou dis-moi simplement ce que tu as mangé ce matin. C'est parti ! 💪\n\n(PS : à tout moment, tape /aide pour voir tout ce que je peux faire)"
+        return "Alors, on commence ? Envoie-moi la photo de ton repas, ou dis-moi simplement ce que tu as mangé ce matin. C'est parti ! 💪\n\n/aide pour voir tout ce que je peux faire 😛"
     
     # Si on arrive ici, erreur
     user_data['onboarding_complete'] = True
