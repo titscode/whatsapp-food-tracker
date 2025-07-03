@@ -113,7 +113,7 @@ def handle_simple_onboarding(phone_number, message, user_data):
         user_data['objective'] = goal  # Mapping pour compatibilité
         user_data['onboarding_step'] = 'height'
         update_user_data(phone_number, user_data)
-        return "Let's go ! Tu mesures combien ? (En cm, stp)"
+        return "Nickel ! Tu mesures combien ? (En cm, stp)"
     
     elif step == 'height':
         # Étape 6 : Taille → Genre

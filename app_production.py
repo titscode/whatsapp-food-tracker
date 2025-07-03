@@ -583,31 +583,61 @@ def format_unified_food_message(food_data, user_data):
     fats = food_data['lipides']
     carbs = food_data['glucides']
     
-    # Titre : "C'est noté ! ✅ +XXX kcal"
-    parts = [f"C'est noté ! ✅ +{calories:.0f} kcal"]
+    # Détecter si c'est un seul ingrédient (pas de liste d'ingrédients OU un seul ingrédient)
+    ingredients = food_data.get('ingredients', [])
+    is_single_ingredient = len(ingredients) <= 1
     
-    # Analyse du plat
-    parts.append("\nAnalyse de ton plat :")
+    # Titre : "C'est noté ! ✅"
+    parts = [f"C'est noté ! ✅"]
     
-    # Ingrédients détectés si disponibles
-    if food_data.get('ingredients'):
-        for ing in food_data['ingredients'][:3]:  # Limiter à 3 ingrédients principaux
-            parts.append(f"• {ing['name']} ({ing['grams']}g) : {ing['calories']:.0f} kcal")
+    if is_single_ingredient:
+        # NOUVEAU FORMAT pour un seul ingrédient
+        # Afficher le nom avec le poids si disponible
+        if ingredients and len(ingredients) == 1:
+            weight = ingredients[0].get('grams', 0)
+            parts.append(f"{food_name} ({weight}g)")
+        else:
+            parts.append(f"{food_name}")
+        
+        # Détail du plat (valeurs nutritionnelles)
+        parts.extend([
+            f"\n📊 Détail du plat :",
+            f"🔥 Calories : {calories:.0f} kcal",
+            f"💪 Protéines : {proteins:.1f}g",
+            f"🥑 Lipides : {fats:.1f}g",
+            f"🍞 Glucides : {carbs:.1f}g"
+        ])
+        
+        # Conseil de Léa
+        expert_advice = get_expert_nutrition_advice(food_name, calories, proteins, fats, carbs, user_data)
+        parts.append(f"\n💡 Le conseil de Léa : {expert_advice}")
+        
+    else:
+        # FORMAT EXISTANT pour plusieurs ingrédients
+        parts[0] = f"C'est noté ! ✅ +{calories:.0f} kcal"
+        
+        # Analyse du plat
+        parts.append("\nAnalyse de ton plat :")
+        
+        # Ingrédients détectés si disponibles
+        if ingredients:
+            for ing in ingredients[:3]:  # Limiter à 3 ingrédients principaux
+                parts.append(f"• {ing['name']} ({ing['grams']}g) : {ing['calories']:.0f} kcal")
+        
+        # Détail du plat (valeurs nutritionnelles)
+        parts.extend([
+            f"\n📊 Détail du plat :",
+            f"🔥 Calories : {calories:.0f} kcal",
+            f"💪 Protéines : {proteins:.1f}g",
+            f"🥑 Lipides : {fats:.1f}g",
+            f"🍞 Glucides : {carbs:.1f}g"
+        ])
+        
+        # Conseil de Léa
+        expert_advice = get_expert_nutrition_advice(food_name, calories, proteins, fats, carbs, user_data)
+        parts.append(f"\n💡 Le conseil de Léa : {expert_advice}")
     
-    # NOUVEAU : Détail du plat (valeurs nutritionnelles)
-    parts.extend([
-        f"\n📊 Détail du plat :",
-        f"🔥 Calories : {calories:.0f} kcal",
-        f"💪 Protéines : {proteins:.1f}g",
-        f"🥑 Lipides : {fats:.1f}g",
-        f"🍞 Glucides : {carbs:.1f}g"
-    ])
-    
-    # Conseil de Léa
-    expert_advice = get_expert_nutrition_advice(food_name, calories, proteins, fats, carbs, user_data)
-    parts.append(f"\n💡 Le conseil de Léa : {expert_advice}")
-    
-    # Bilan du jour
+    # Bilan du jour (identique pour les deux formats)
     target_calories = user_data.get('target_calories', 0)
     daily_calories = user_data.get('daily_calories', 0)
     daily_proteins = user_data.get('daily_proteins', 0)
@@ -623,7 +653,6 @@ def format_unified_food_message(food_data, user_data):
             f"\n📈 Ton bilan du jour :",
             f"🔥 Calories : {daily_calories:.0f} / {target_calories}",
             f"💪 Protéines : {daily_proteins:.1f} / {target_proteins}g",
-            "",
             f"🥑 Lipides : {daily_fats:.1f} / {target_fats}g",
             f"🍞 Glucides : {daily_carbs:.1f} / {target_carbs}g"
         ])
