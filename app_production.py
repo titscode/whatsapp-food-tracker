@@ -1635,6 +1635,152 @@ def payment_cancel():
 def api_stats():
     return jsonify(get_stats())
 
+@app.route('/privacy-policy')
+def privacy_policy():
+    """Page de politique de confidentialité pour Léa Nutrition"""
+    return '''
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Politique de Confidentialité - Léa Nutrition</title>
+        <style>
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                line-height: 1.6; 
+                margin: 0; 
+                padding: 20px; 
+                background: #f8f9fa; 
+                color: #333;
+            }
+            .container { 
+                max-width: 800px; 
+                margin: 0 auto; 
+                background: white; 
+                padding: 40px; 
+                border-radius: 10px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { 
+                color: #4CAF50; 
+                text-align: center; 
+                margin-bottom: 30px;
+            }
+            h2 { 
+                color: #2c3e50; 
+                border-bottom: 2px solid #4CAF50; 
+                padding-bottom: 5px;
+            }
+            .last-updated { 
+                text-align: center; 
+                color: #666; 
+                font-style: italic; 
+                margin-bottom: 30px;
+            }
+            .contact-info { 
+                background: #f8f9fa; 
+                padding: 20px; 
+                border-radius: 5px; 
+                margin-top: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🥗 Politique de Confidentialité - Léa Nutrition</h1>
+            <div class="last-updated">Dernière mise à jour : 8 janvier 2025</div>
+            
+            <h2>1. Introduction</h2>
+            <p>Léa Nutrition est un chatbot nutritionnel intelligent qui vous aide à suivre votre alimentation via WhatsApp. Cette politique de confidentialité explique comment nous collectons, utilisons et protégeons vos données personnelles.</p>
+            
+            <h2>2. Données Collectées</h2>
+            <p>Nous collectons uniquement les informations nécessaires au fonctionnement du service :</p>
+            <ul>
+                <li><strong>Numéro de téléphone :</strong> Pour identifier votre compte et vous envoyer des réponses</li>
+                <li><strong>Messages WhatsApp :</strong> Vos questions et descriptions d'aliments</li>
+                <li><strong>Photos d'aliments :</strong> Pour analyser votre nutrition (optionnel)</li>
+                <li><strong>Données nutritionnelles :</strong> Calories, protéines, lipides, glucides calculés</li>
+                <li><strong>Préférences :</strong> Objectifs nutritionnels, allergies, préférences alimentaires</li>
+            </ul>
+            
+            <h2>3. Utilisation des Données</h2>
+            <p>Vos données sont utilisées exclusivement pour :</p>
+            <ul>
+                <li>Fournir des analyses nutritionnelles personnalisées</li>
+                <li>Suivre vos progrès alimentaires</li>
+                <li>Améliorer nos recommandations</li>
+                <li>Assurer le support technique</li>
+            </ul>
+            
+            <h2>4. Protection des Données</h2>
+            <p>Nous mettons en place des mesures de sécurité strictes :</p>
+            <ul>
+                <li><strong>Chiffrement :</strong> Toutes les communications sont chiffrées</li>
+                <li><strong>Accès limité :</strong> Seuls les développeurs autorisés peuvent accéder aux données</li>
+                <li><strong>Stockage sécurisé :</strong> Base de données protégée sur serveurs sécurisés</li>
+                <li><strong>Pas de vente :</strong> Nous ne vendons jamais vos données à des tiers</li>
+            </ul>
+            
+            <h2>5. Partage des Données</h2>
+            <p>Vos données ne sont <strong>jamais partagées</strong> avec des tiers, sauf :</p>
+            <ul>
+                <li>Si requis par la loi</li>
+                <li>Pour protéger nos droits légaux</li>
+                <li>Avec votre consentement explicite</li>
+            </ul>
+            
+            <h2>6. Conservation des Données</h2>
+            <p>Nous conservons vos données :</p>
+            <ul>
+                <li><strong>Données nutritionnelles :</strong> Tant que vous utilisez le service</li>
+                <li><strong>Messages :</strong> 30 jours maximum pour le support technique</li>
+                <li><strong>Photos :</strong> Supprimées après analyse (non stockées)</li>
+            </ul>
+            
+            <h2>7. Vos Droits</h2>
+            <p>Vous avez le droit de :</p>
+            <ul>
+                <li><strong>Accéder</strong> à vos données (tapez /export)</li>
+                <li><strong>Modifier</strong> vos informations (tapez /profil)</li>
+                <li><strong>Supprimer</strong> votre compte (tapez /delete)</li>
+                <li><strong>Exporter</strong> vos données nutritionnelles</li>
+            </ul>
+            
+            <h2>8. Cookies et Tracking</h2>
+            <p>Léa Nutrition n'utilise <strong>aucun cookie</strong> ni système de tracking. Nous respectons votre vie privée.</p>
+            
+            <h2>9. Services Tiers</h2>
+            <p>Nous utilisons des services tiers sécurisés :</p>
+            <ul>
+                <li><strong>WhatsApp Business API :</strong> Pour la messagerie (Meta/Facebook)</li>
+                <li><strong>Railway :</strong> Pour l'hébergement sécurisé</li>
+                <li><strong>Stripe :</strong> Pour les paiements sécurisés (Premium)</li>
+            </ul>
+            
+            <h2>10. Modifications</h2>
+            <p>Cette politique peut être mise à jour. Les changements importants vous seront notifiés via WhatsApp.</p>
+            
+            <h2>11. Contact</h2>
+            <div class="contact-info">
+                <p><strong>Pour toute question concernant cette politique :</strong></p>
+                <ul>
+                    <li>📱 WhatsApp : Tapez /aide dans votre conversation avec Léa</li>
+                    <li>📧 Email : support@lea-nutrition.com</li>
+                    <li>🌐 Site : https://web-production-eed0c.up.railway.app</li>
+                </ul>
+                <p><em>Nous nous engageons à répondre dans les 48h.</em></p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px; color: #666;">
+                <p>🥗 <strong>Léa Nutrition</strong> - Votre coach nutrition intelligent</p>
+                <p><em>Développé avec ❤️ pour votre bien-être</em></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 3000))
     logger.info(f"🚀 Serveur Léa v3.0 démarré sur le port {port}")
