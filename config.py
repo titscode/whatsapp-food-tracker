@@ -101,10 +101,18 @@ def get_environment_display():
 # Configuration par environnement
 class BaseConfig:
     """Configuration de base"""
-    # Twilio
+    # Twilio (legacy - à garder pour transition)
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', 'whatsapp:+14155238886')
+    
+    # WhatsApp Business API (Meta)
+    WHATSAPP_ACCESS_TOKEN = os.getenv('WHATSAPP_ACCESS_TOKEN')
+    WHATSAPP_PHONE_NUMBER_ID = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+    WHATSAPP_BUSINESS_ACCOUNT_ID = os.getenv('WHATSAPP_BUSINESS_ACCOUNT_ID')
+    WHATSAPP_APP_ID = os.getenv('WHATSAPP_APP_ID')
+    WHATSAPP_WEBHOOK_TOKEN = os.getenv('WHATSAPP_WEBHOOK_TOKEN', 'lea-nutrition-webhook-2025')
+    USE_WHATSAPP_BUSINESS_API = os.getenv('USE_WHATSAPP_BUSINESS_API', 'false').lower() == 'true'
     
     # OpenAI
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

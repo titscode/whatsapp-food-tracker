@@ -1006,17 +1006,165 @@ def check_premium_limit(from_number, user_data):
     # TOUJOURS autoriser le message, ne jamais bloquer
     return True
 
+@app.route('/whatsapp-business', methods=['POST', 'GET'])
+def whatsapp_business_webhook():
+    """Webhook pour WhatsApp Business API (Meta)"""
+    if request.method == 'GET':
+        # Vérification du webhook Meta
+        verify_token = request.args.get('hub.verify_token')
+        challenge = request.args.get('hub.challenge')
+        mode = request.args.get('hub.mode')
+        
+        if mode == 'subscribe' and verify_token == current_config.WHATSAPP_WEBHOOK_TOKEN:
+            logger.info("✅ Webhook WhatsApp Business vérifié")
+            return challenge, 200
+        else:
+            logger.error("❌ Échec vérification webhook WhatsApp Business")
+            return "Forbidden", 403
+    
+    try:
+        # Traitement des messages entrants
+        payload = request.get_json()
+        
+        if not payload:
+            return "No payload", 400
+        
+        # Parser le message Meta
+        from whatsapp_business_api import parse_whatsapp_business_webhook
+        message_data = parse_whatsapp_business_webhook(payload)
+        
+        if not message_data:
+            return "No message data", 200
+        
+        # Extraire les informations
+        from_number = message_data.get("from_number")
+        text_content = message_data.get("text", "")
+        message_id = message_data.get("message_id")
+        media_url = message_data.get("media_url")
+        
+        if not from_number:
+            return "No sender", 400
+        
+        # Ajouter le préfixe whatsapp: pour compatibilité avec le code existant
+        from_number_formatted = f"whatsapp:+{from_number}"
+        
+        logger.info(f"📱 Message WhatsApp Business de {from_number}: '{text_content}'")
+        
+        # Marquer le message comme lu
+        if message_id:
+            from whatsapp_business_api import whatsapp_business_client
+            whatsapp_business_client.mark_message_as_read(message_id)
+        
+        # Traitement identique au webhook Twilio
+        return process_whatsapp_message(from_number_formatted, text_content, media_url)
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur webhook WhatsApp Business: {e}")
+        return "Error", 500
+
+def process_whatsapp_message(from_number, text_content, media_url):
+    """Fonction commune pour traiter les messages WhatsApp (Twilio et Business API)"""
+    # Vérifications préliminaires
+    if is_rate_limited(from_number):
+        send_whatsapp_reply(
+            from_number, 
+            "⏰ Trop de messages ! Attendez une minute.", 
+            twilio_client, 
+            current_config.TWILIO_PHONE_NUMBER
+        )
+        return '<Response/>', 429
+    
+    try:
+        # Récupérer/créer utilisateur
+        user_data = get_user_data(from_number)
+        is_new_user = False
+        
+        if not user_data:
+            # Nouvel utilisateur - créer avec onboarding non terminé
+            user_data = {
+                'onboarding_complete': False,
+                'onboarding_step': 'start',
+                'daily_calories': 0,
+                'daily_proteins': 0,
+                'daily_fats': 0,
+                'daily_carbs': 0,
+                'meals': []
+            }
+            update_user_data(from_number, user_data)
+            is_new_user = True
+        
+        # Si c'est un nouvel utilisateur OU si le message contient "join live-cold", démarrer l'onboarding
+        if is_new_user or (text_content and 'join live-cold' in text_content.lower()):
+            if not is_new_user:
+                # Si c'est "join live-cold", redémarrer complètement l'onboarding
+                delete_user_data(from_number)
+                user_data = {
+                    'onboarding_complete': False,
+                    'onboarding_step': 'start',
+                    'daily_calories': 0,
+                    'daily_proteins': 0,
+                    'daily_fats': 0,
+                    'daily_carbs': 0,
+                    'meals': []
+                }
+                update_user_data(from_number, user_data)
+            
+            from simple_onboarding import handle_simple_onboarding
+            onboarding_message = handle_simple_onboarding(from_number, 'start', user_data)
+            send_whatsapp_reply(from_number, onboarding_message, twilio_client, current_config.TWILIO_PHONE_NUMBER)
+            return '<Response/>', 200
+        
+        # Traitement par priorité
+        if handle_onboarding(from_number, text_content, user_data):
+            return '<Response/>', 200
+        
+        if handle_special_commands(text_content, from_number, user_data):
+            return '<Response/>', 200
+        
+        # Vérifier la limite premium AVANT de traiter le message
+        if not check_premium_limit(from_number, user_data):
+            return '<Response/>', 200  # Message bloqué, rappel premium envoyé
+        
+        # Messages vocaux (désactivés)
+        if not text_content and media_url and 'audio' in str(media_url):
+            send_whatsapp_reply(
+                from_number, 
+                "🎤 Messages vocaux bientôt disponibles ! Utilisez du texte ou une photo 📷", 
+                twilio_client, 
+                current_config.TWILIO_PHONE_NUMBER
+            )
+            return '<Response/>', 200
+        
+        # Classification et traitement
+        if text_content:
+            if handle_conversation(text_content, from_number, user_data):
+                return '<Response/>', 200
+        
+        # Tracking d'aliments par défaut
+        handle_food_tracking(text_content, media_url, from_number)
+        return '<Response/>', 200
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur traitement message: {e}")
+        send_whatsapp_reply(
+            from_number, 
+            "😓 Erreur technique. Réessayez ou tapez /aide.", 
+            twilio_client, 
+            current_config.TWILIO_PHONE_NUMBER
+        )
+        return '<Response/>', 200
+
 @app.route('/whatsapp', methods=['POST', 'GET'])
 def whatsapp_webhook():
-    """Point d'entrée principal pour les messages WhatsApp"""
+    """Point d'entrée principal pour les messages WhatsApp (Twilio)"""
     if request.method == 'GET':
-        return "Webhook WhatsApp actif!", 200
+        return "Webhook WhatsApp Twilio actif!", 200
     
     from_number = request.form.get('From')
     text_content = request.form.get('Body', '').strip()
     media_url = request.form.get('MediaUrl0')
     
-    logger.info(f"📱 Message de {from_number}: '{text_content}'")
+    logger.info(f"📱 Message Twilio de {from_number}: '{text_content}'")
     
     # Vérifications préliminaires
     if is_rate_limited(from_number):

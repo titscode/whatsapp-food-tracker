@@ -42,31 +42,59 @@ def transcribe_audio(audio_url, account_sid, auth_token, api_key):
         print(f"❌ Erreur transcription: {e}")
         return None
 
-def send_whatsapp_reply(to, message, twilio_client, twilio_phone_number):
-    """Envoie un message WhatsApp avec gestion d'encodage"""
+def send_whatsapp_reply(to, message, twilio_client=None, twilio_phone_number=None):
+    """
+    Envoie un message WhatsApp via Twilio ou WhatsApp Business API selon la configuration
+    
+    Args:
+        to: Numéro destinataire
+        message: Message à envoyer
+        twilio_client: Client Twilio (optionnel, pour compatibilité)
+        twilio_phone_number: Numéro Twilio (optionnel, pour compatibilité)
+    """
+    from config import current_config
+    
+    # Vérifier si WhatsApp Business API est activé
+    if hasattr(current_config, 'USE_WHATSAPP_BUSINESS_API') and current_config.USE_WHATSAPP_BUSINESS_API:
+        try:
+            from whatsapp_business_api import send_whatsapp_business_reply
+            success = send_whatsapp_business_reply(to, message)
+            if success:
+                print(f"✅ Message WhatsApp Business envoyé")
+                return
+            else:
+                print(f"⚠️ Échec WhatsApp Business, fallback vers Twilio")
+        except Exception as e:
+            print(f"❌ Erreur WhatsApp Business API: {e}, fallback vers Twilio")
+    
+    # Fallback vers Twilio ou si WhatsApp Business API désactivé
     try:
         # Nettoyer le message des caractères problématiques
         clean_message = message.encode('utf-8', errors='ignore').decode('utf-8')
         
-        msg = twilio_client.messages.create(
-            body=clean_message,
-            from_=twilio_phone_number,
-            to=to
-        )
-        print(f"✅ Message envoyé: {msg.sid}")
-    except Exception as e:
-        print(f"❌ Erreur envoi: {e}")
-        # Fallback sans emojis en cas d'échec
-        try:
-            fallback_message = ''.join(char for char in message if ord(char) < 128)
+        if twilio_client and twilio_phone_number:
             msg = twilio_client.messages.create(
-                body=fallback_message,
+                body=clean_message,
                 from_=twilio_phone_number,
                 to=to
             )
-            print(f"✅ Message fallback envoyé: {msg.sid}")
+            print(f"✅ Message Twilio envoyé: {msg.sid}")
+        else:
+            print(f"❌ Pas de client Twilio fourni")
+    except Exception as e:
+        print(f"❌ Erreur envoi Twilio: {e}")
+        # Fallback sans emojis en cas d'échec
+        try:
+            if twilio_client and twilio_phone_number:
+                fallback_message = ''.join(char for char in message if ord(char) < 128)
+                msg = twilio_client.messages.create(
+                    body=fallback_message,
+                    from_=twilio_phone_number,
+                    to=to
+                )
+                print(f"✅ Message Twilio fallback envoyé: {msg.sid}")
         except Exception as e2:
-            print(f"❌ Erreur fallback: {e2}")
+            print(f"❌ Erreur Twilio fallback: {e2}")
 
 def get_help_message():
     """Message d'aide"""
